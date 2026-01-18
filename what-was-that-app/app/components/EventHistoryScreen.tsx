@@ -1,12 +1,12 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { Clock } from "lucide-react-native";
 
 interface Event {
   id: string;
   name: string;
   location: string;
   timestamp: string;
-  confidence: number;
   type: "detected" | "confirmed" | "attention";
 }
 
@@ -21,14 +21,7 @@ const COLORS = {
 };
 
 export default function EventHistoryScreen() {
-  const events: Event[] = [
-    { id: "1", name: "Door knock", location: "Living room", timestamp: "2 minutes ago", confidence: 87, type: "detected" },
-    { id: "2", name: "Footsteps", location: "Hallway", timestamp: "15 minutes ago", confidence: 92, type: "confirmed" },
-    { id: "3", name: "Object dropped", location: "Kitchen", timestamp: "1 hour ago", confidence: 78, type: "attention" },
-    { id: "4", name: "Door knock", location: "Front door", timestamp: "3 hours ago", confidence: 85, type: "detected" },
-    { id: "5", name: "Appliance", location: "Kitchen", timestamp: "5 hours ago", confidence: 95, type: "confirmed" },
-    { id: "6", name: "Footsteps", location: "Bedroom", timestamp: "Yesterday", confidence: 88, type: "detected" },
-  ];
+  const events: Event[] = []; // Empty - no placeholders
 
   const getColorForType = (type: Event["type"]) => {
     switch (type) {
@@ -42,45 +35,80 @@ export default function EventHistoryScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView 
+      style={styles.scrollView}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+    >
       <Text style={styles.title}>Event History</Text>
       <Text style={styles.subtitle}>You're aware — not alarmed</Text>
 
-      <View style={styles.list}>
-        {events.map((event) => (
-          <View key={event.id} style={styles.card}>
-            <View style={styles.row}>
-              <View style={[styles.dot, { backgroundColor: getColorForType(event.type) }]} />
+      {events.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Clock size={48} color={COLORS.textSecondary} />
+          <Text style={styles.emptyTitle}>No events yet</Text>
+          <Text style={styles.emptyBody}>
+            Detected sounds will appear here
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.list}>
+          {events.map((event) => (
+            <View key={event.id} style={styles.card}>
+              <View style={styles.row}>
+                <View style={[styles.dot, { backgroundColor: getColorForType(event.type) }]} />
 
-              <View style={styles.content}>
-                <View style={styles.topRow}>
+                <View style={styles.content}>
                   <Text style={styles.eventName}>{event.name}</Text>
-                  <Text style={styles.confidence}>{event.confidence}%</Text>
+                  <Text style={styles.meta}>{event.location}</Text>
+                  <Text style={styles.timestamp}>{event.timestamp}</Text>
                 </View>
-
-                <Text style={styles.meta}>{event.location}</Text>
-                <Text style={styles.timestamp}>{event.timestamp}</Text>
               </View>
             </View>
-          </View>
-        ))}
-      </View>
-    </View>
+          ))}
+        </View>
+      )}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollView: {
+    flex: 1,
+    backgroundColor: COLORS.bg,
+  },
+  scrollContent: {
+    padding: 24,
+    paddingBottom: 100, // Extra padding for bottom nav
+  },
   container: { flex: 1, backgroundColor: COLORS.bg, padding: 24 },
   title: { fontSize: 24, fontWeight: "700", color: COLORS.textPrimary, marginBottom: 6 },
   subtitle: { color: COLORS.textSecondary, marginBottom: 18 },
-  list: { gap: 12 }, // if RN complains, replace w/ marginBottom on card
+  emptyState: {
+    backgroundColor: COLORS.card,
+    borderRadius: 18,
+    padding: 32,
+    alignItems: "center",
+    marginTop: 24,
+  },
+  emptyTitle: {
+    marginTop: 16,
+    color: COLORS.textPrimary,
+    fontWeight: "700",
+    fontSize: 18,
+  },
+  emptyBody: {
+    marginTop: 8,
+    color: COLORS.textSecondary,
+    textAlign: "center",
+    fontSize: 14,
+  },
+  list: { gap: 12 },
   card: { backgroundColor: COLORS.card, borderRadius: 18, padding: 16 },
   row: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
   dot: { width: 10, height: 10, borderRadius: 999, marginTop: 4 },
   content: { flex: 1 },
-  topRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 },
-  eventName: { color: COLORS.textPrimary, fontSize: 16, fontWeight: "600", paddingRight: 10, flexShrink: 1 },
-  confidence: { color: COLORS.textSecondary, fontSize: 13 },
+  eventName: { color: COLORS.textPrimary, fontSize: 16, fontWeight: "600", marginBottom: 4 },
   meta: { color: COLORS.textSecondary, fontSize: 13, marginBottom: 2 },
   timestamp: { color: COLORS.textSecondary, fontSize: 12 },
 });

@@ -23,32 +23,7 @@ export interface SavedSound {
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>("home");
-  const [savedSounds, setSavedSounds] = useState<SavedSound[]>([
-    {
-      id: "1",
-      label: "Door knock",
-      dateAdded: "3 days ago",
-      timesDetected: 12,
-      enabled: true,
-      audioData: "audio-1704067200000",
-    },
-    {
-      id: "2",
-      label: "Microwave beep",
-      dateAdded: "1 week ago",
-      timesDetected: 28,
-      enabled: true,
-      audioData: "audio-1703462400000",
-    },
-    {
-      id: "3",
-      label: "Dog bark",
-      dateAdded: "2 weeks ago",
-      timesDetected: 5,
-      enabled: false,
-      audioData: "audio-1702857600000",
-    },
-  ]);
+  const [savedSounds, setSavedSounds] = useState<SavedSound[]>([]);
 
   const handleSaveSound = (label: string, audioData: string, audioUri?: string) => {
     const newSound: SavedSound = {
