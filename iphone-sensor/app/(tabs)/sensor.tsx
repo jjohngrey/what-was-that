@@ -26,6 +26,7 @@ const SAMPLE_RATE = 16000; // 16kHz
 const BUFFER_DURATION_MS = 3000; // 3 seconds rolling buffer
 const TRIGGER_THRESHOLD = 0.3; // Sound level threshold (0.0 - 1.0)
 const COOLDOWN_MS = 1500; // 1.5 seconds between uploads
+const AUDIO_GAIN = 3.0; // Amplification factor (1.0 = no change, 2.0 = double volume, etc.)
 const CHUNKS_PER_BUFFER = Math.ceil((SAMPLE_RATE * BUFFER_DURATION_MS) / 1000);
 
 interface MatchResult {
@@ -144,6 +145,13 @@ export default function SensorScreen() {
       
       // Convert base64 PCM data to Float32Array
       const pcmData = base64ToFloat32Array(data);
+      
+      // Apply audio gain (amplification)
+      for (let i = 0; i < pcmData.length; i++) {
+        pcmData[i] *= AUDIO_GAIN;
+        // Clamp to prevent clipping
+        pcmData[i] = Math.max(-1.0, Math.min(1.0, pcmData[i]));
+      }
       
       // Calculate RMS level if soundLevel is not provided
       let level = soundLevel;
@@ -591,6 +599,7 @@ export default function SensorScreen() {
           <ThemedText style={styles.footerText}>
             💡 How it works:{'\n'}
             • Continuously records audio in a 3s rolling buffer{'\n'}
+            • Audio gain: {AUDIO_GAIN}x amplification{'\n'}
             • Triggers when sound exceeds {(TRIGGER_THRESHOLD * 100).toFixed(0)}% threshold{'\n'}
             • Captures and uploads the last 3 seconds{'\n'}
             • {COOLDOWN_MS / 1000}s cooldown between triggers

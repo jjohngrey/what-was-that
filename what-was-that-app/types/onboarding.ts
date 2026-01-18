@@ -5,14 +5,12 @@ export interface OnboardingData {
   soundTypes: {
     smokeAlarm: boolean; // Always true, locked
     glassBreaking: boolean;
-    doorbell: boolean;
-    babyCrying: boolean;
+    doorbell: boolean; // Deprecated - users now record their own
+    babyCrying: boolean; // Keep for backwards compatibility but not shown in UI
   };
-  customSounds: Array<{
-    name: string;
-    audioId: string;
-    audioUri: string;
-  }>; // Array of custom sound objects with full data
+  recordedSounds: {
+    doorbell?: { audioId: string; audioUri: string };
+  };
   delivery: {
     flashlight: boolean;
     vibration: boolean;
@@ -33,7 +31,7 @@ export const defaultOnboardingData: OnboardingData = {
     doorbell: true,
     babyCrying: true,
   },
-  customSounds: [],
+  recordedSounds: {},
   delivery: {
     flashlight: true,
     vibration: true,

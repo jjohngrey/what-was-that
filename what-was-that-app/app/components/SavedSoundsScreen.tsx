@@ -88,13 +88,20 @@ export default function SavedSoundsScreen({
       }
 
       // If no audioUri, show alert
+      console.log('🔍 Attempting to play sound:', sound.label);
+      console.log('🔍 Sound audioUri:', sound.audioUri);
+      console.log('🔍 Sound audioData:', sound.audioData);
+      
       if (!sound.audioUri) {
+        console.log('❌ No audioUri found for sound');
         Alert.alert(
           "No Audio Available",
           "This sound was saved before audio recording was implemented. Re-record it to enable playback."
         );
         return;
       }
+      
+      console.log('✅ audioUri exists, attempting playback from:', sound.audioUri);
 
       // Load and play the new sound at full volume
       const { sound: newSound } = await Audio.Sound.createAsync(

@@ -20,7 +20,7 @@ export const CONFIG = {
    * Your phone and computer must be on the same WiFi network.
    */
   BACKEND_URL: 'http://155.138.215.227:3000', // ⚠️ UPDATE THIS!
-
+//   BACKEND_URL: 'http://206.12.41.7:3000',
   /**
    * User ID
    * 
@@ -38,7 +38,7 @@ export const CONFIG = {
 
     // Audio match confidence threshold (0.0 - 1.0)
     // Higher = more strict matching
-    MATCH_THRESHOLD: 0.85, // 85%
+    MATCH_THRESHOLD: 0.65, 
 
     // Only match against your own fingerprints
     MATCH_OWN_ONLY: true,

@@ -58,6 +58,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       // Final step - mark complete and save
       console.log('🎉 Final step reached - marking onboarding complete');
       const completeData = { ...onboardingData, onboardingComplete: true };
+      console.log('💾 Saving onboarding data:', JSON.stringify(completeData, null, 2));
       await saveOnboardingData(completeData);
       console.log('✅ Data saved, calling onComplete callback');
       onComplete();
@@ -77,8 +78,12 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     setOnboardingData({ ...onboardingData, soundTypes });
   };
 
-  const handleCustomSoundsChange = (customSounds: OnboardingData["customSounds"]) => {
-    setOnboardingData({ ...onboardingData, customSounds });
+  const handleRecordedSoundsChange = (recordedSounds: OnboardingData["recordedSounds"]) => {
+    console.log('🔄 OnboardingFlow: handleRecordedSoundsChange called');
+    console.log('  recordedSounds:', JSON.stringify(recordedSounds, null, 2));
+    const updatedData = { ...onboardingData, recordedSounds };
+    console.log('  Updated onboardingData:', JSON.stringify(updatedData, null, 2));
+    setOnboardingData(updatedData);
   };
 
   const handleDeliveryChange = (delivery: OnboardingData["delivery"]) => {
@@ -141,8 +146,8 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             {...stepProps}
             soundTypes={onboardingData.soundTypes}
             onSoundTypesChange={handleSoundTypesChange}
-            customSounds={onboardingData.customSounds}
-            onCustomSoundsChange={handleCustomSoundsChange}
+            recordedSounds={onboardingData.recordedSounds}
+            onRecordedSoundsChange={handleRecordedSoundsChange}
           />
         );
       case 3:

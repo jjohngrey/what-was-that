@@ -20,6 +20,8 @@ import axios from "axios";
 interface TeachSoundScreenProps {
   onClose: () => void;
   onSave: (label: string, audioData: string, audioUri: string) => Promise<void> | void;
+  title?: string; // Optional custom title
+  autoSaveName?: string; // If provided, auto-saves with this name instead of asking
 }
 
 type RecordingState = "idle" | "recording" | "recorded";
@@ -54,7 +56,7 @@ const getBackendUrl = () => {
   return "http://localhost:3000";
 };
 
-export default function TeachSoundScreen({ onClose, onSave }: TeachSoundScreenProps) {
+export default function TeachSoundScreen({ onClose, onSave, title = "Record a chime", autoSaveName }: TeachSoundScreenProps) {
   const [currentRecording, setCurrentRecording] = useState(1); // 1, 2, or 3
   const [recordingState, setRecordingState] = useState<RecordingState>("idle");
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -278,6 +280,14 @@ export default function TeachSoundScreen({ onClose, onSave }: TeachSoundScreenPr
       } else {
         console.log('All 3 recordings complete!');
         setAllRecordingsComplete(true);
+        
+        // If autoSaveName is provided, save automatically
+        if (autoSaveName) {
+          console.log('🤖 Auto-saving with name:', autoSaveName);
+          setTimeout(() => {
+            handleSaveWithName(autoSaveName);
+          }, 1000); // Give user a moment to see completion
+        }
       }
     } catch (err) {
       console.error("Failed to stop recording", err);
@@ -425,8 +435,8 @@ export default function TeachSoundScreen({ onClose, onSave }: TeachSoundScreenPr
     }
   };
 
-  const handleSave = async () => {
-    if (!customLabel.trim()) {
+  const handleSaveWithName = async (labelToUse: string) => {
+    if (!labelToUse.trim()) {
       Alert.alert("Error", "Please enter a label for this sound.");
       return;
     }
@@ -439,24 +449,28 @@ export default function TeachSoundScreen({ onClose, onSave }: TeachSoundScreenPr
 
     try {
       // Upload to backend and create fingerprint
-      const audioId = await uploadToBackend(customLabel);
+      const audioId = await uploadToBackend(labelToUse);
       
       if (audioId) {
         // Successfully uploaded and fingerprinted
         const firstRecordingUri = recordingUrisRef.current[0];
-        await onSave(customLabel, audioId, firstRecordingUri);
+        await onSave(labelToUse, audioId, firstRecordingUri);
         onClose();
       } else {
         // Upload failed, but keep the local recording
         const fallbackId = `local-${Date.now()}`;
         const firstRecordingUri = recordingUrisRef.current[0];
-        await onSave(customLabel, fallbackId, firstRecordingUri);
+        await onSave(labelToUse, fallbackId, firstRecordingUri);
         onClose();
       }
     } catch (err) {
       console.error("Failed to save:", err);
       Alert.alert("Error", "Failed to save recording. Please try again.");
     }
+  };
+
+  const handleSave = async () => {
+    await handleSaveWithName(customLabel);
   };
 
   const formatDuration = (seconds: number) => {
@@ -488,7 +502,7 @@ export default function TeachSoundScreen({ onClose, onSave }: TeachSoundScreenPr
         <Pressable onPress={onClose} style={styles.backBtn} hitSlop={10}>
           <ArrowLeft size={24} color={COLORS.textPrimary} />
         </Pressable>
-        <Text style={styles.headerTitle}>Record a chime</Text>
+        <Text style={styles.headerTitle}>{title}</Text>
       </View>
 
       {/* Recording Card */}
@@ -565,8 +579,8 @@ export default function TeachSoundScreen({ onClose, onSave }: TeachSoundScreenPr
         )}
       </Animated.View>
 
-      {/* Label Input - Only show after all 3 recordings */}
-      {allRecordingsComplete && (
+      {/* Label Input - Only show after all 3 recordings AND if no autoSaveName */}
+      {allRecordingsComplete && !autoSaveName && (
         <Animated.View style={[styles.inputBlock, { opacity: labelFade, transform: [{ translateY: labelFade.interpolate({
           inputRange: [0, 1],
           outputRange: [12, 0],
@@ -591,8 +605,8 @@ export default function TeachSoundScreen({ onClose, onSave }: TeachSoundScreenPr
 
       <View style={{ flex: 1 }} />
 
-      {/* Action Buttons - Fixed at bottom - Only show after all 3 recordings */}
-      {allRecordingsComplete && (
+      {/* Action Buttons - Fixed at bottom - Only show after all 3 recordings AND if no autoSaveName */}
+      {allRecordingsComplete && !autoSaveName && (
         <Animated.View style={[styles.bottomButtonContainer, { opacity: saveFade }]}>
           <Pressable
             onPress={handleSave}

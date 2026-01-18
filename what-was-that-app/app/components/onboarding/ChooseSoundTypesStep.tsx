@@ -1,31 +1,45 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, Pressable, Switch, ScrollView, Modal } from "react-native";
-import { Plus, X } from "lucide-react-native";
+import { Mic } from "lucide-react-native";
 import { OnboardingData } from "../../../types/onboarding";
 import TeachSoundScreen from "../TeachSoundScreen";
 import * as FileSystem from "expo-file-system/legacy";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface ChooseSoundTypesStepProps {
   soundTypes: OnboardingData["soundTypes"];
   onSoundTypesChange: (soundTypes: OnboardingData["soundTypes"]) => void;
-  customSounds?: OnboardingData["customSounds"];
-  onCustomSoundsChange?: (sounds: OnboardingData["customSounds"]) => void;
+  recordedSounds?: {
+    doorbell?: { audioId: string; audioUri: string };
+    babyCrying?: { audioId: string; audioUri: string };
+  };
+  onRecordedSoundsChange?: (sounds: {
+    doorbell?: { audioId: string; audioUri: string };
+    babyCrying?: { audioId: string; audioUri: string };
+  }) => void;
   onNext: () => void;
   onBack?: () => void;
   showBack?: boolean;
 }
 
+type RecordingType = "doorbell" | "babyCrying" | null;
+
 export default function ChooseSoundTypesStep({
   soundTypes,
   onSoundTypesChange,
-  customSounds: initialCustomSounds = [],
-  onCustomSoundsChange,
+  recordedSounds = {},
+  onRecordedSoundsChange,
   onNext,
   onBack,
   showBack,
 }: ChooseSoundTypesStepProps) {
   const [showRecorder, setShowRecorder] = useState(false);
-  const [customSounds, setCustomSounds] = useState<OnboardingData["customSounds"]>(initialCustomSounds);
+  const [recordingFor, setRecordingFor] = useState<RecordingType>(null);
+
+  // Debug: Log when recordedSounds prop changes
+  useEffect(() => {
+    console.log('🔍 ChooseSoundTypesStep: recordedSounds prop changed:', JSON.stringify(recordedSounds, null, 2));
+  }, [recordedSounds]);
 
   const toggleSound = (key: keyof OnboardingData["soundTypes"]) => {
     if (key === "smokeAlarm") return; // Locked, always on
@@ -35,66 +49,101 @@ export default function ChooseSoundTypesStep({
     });
   };
 
-  const handleAddCustomSound = async (soundName: string, audioId: string, audioUri: string) => {
+  const handleStartRecording = (type: RecordingType) => {
+    setRecordingFor(type);
+    setShowRecorder(true);
+  };
+
+  const handleSaveRecording = async (soundName: string, audioId: string, audioUri: string) => {
+    console.log('🎙️ handleSaveRecording called');
+    console.log('  soundName:', soundName);
+    console.log('  audioId:', audioId);
+    console.log('  audioUri:', audioUri);
+    console.log('  recordingFor:', recordingFor);
+    
     try {
-      // Copy the audio file to a permanent location to prevent deletion
+      // Copy the audio file to a permanent location
       const permanentDir = `${FileSystem.documentDirectory}audio/`;
       
-      // Create directory if it doesn't exist
       const dirInfo = await FileSystem.getInfoAsync(permanentDir);
       if (!dirInfo.exists) {
         await FileSystem.makeDirectoryAsync(permanentDir, { intermediates: true });
+        console.log('📁 Created audio directory:', permanentDir);
       }
       
-      // Copy file with unique name
       const fileExtension = audioUri.split('.').pop() || 'm4a';
       const permanentUri = `${permanentDir}${audioId}-${Date.now()}.${fileExtension}`;
+      
+      console.log('📁 Copying from:', audioUri);
+      console.log('📁 Copying to:', permanentUri);
+      
       await FileSystem.copyAsync({
         from: audioUri,
         to: permanentUri,
       });
       
-      console.log(`📁 Copied audio file to permanent location: ${permanentUri}`);
+      console.log(`✅ File copied successfully`);
       
-      // Store the permanent URI instead of the temp one
-      const updated = [...customSounds, { name: soundName, audioId, audioUri: permanentUri }];
-      setCustomSounds(updated);
-      if (onCustomSoundsChange) {
-        onCustomSoundsChange(updated);
+      // Verify the file exists
+      const fileInfo = await FileSystem.getInfoAsync(permanentUri);
+      console.log('🔍 Verifying copied file exists:', fileInfo.exists);
+      
+      // Save audioUri to AsyncStorage so it can be retrieved when fetching from backend
+      const storageKey = `audioUri_${audioId}`;
+      await AsyncStorage.setItem(storageKey, permanentUri);
+      console.log('💾 Saved to AsyncStorage: key=', storageKey, ', value=', permanentUri);
+      
+      // Verify it was saved
+      const savedUri = await AsyncStorage.getItem(storageKey);
+      console.log('✅ Verified AsyncStorage:', savedUri);
+      
+      // Save the recording
+      if (onRecordedSoundsChange && recordingFor) {
+        const updatedSounds = {
+          ...recordedSounds,
+          [recordingFor]: { audioId, audioUri: permanentUri },
+        };
+        console.log('💾 Calling onRecordedSoundsChange with:', JSON.stringify(updatedSounds, null, 2));
+        onRecordedSoundsChange(updatedSounds);
+      } else {
+        console.log('⚠️ onRecordedSoundsChange or recordingFor is null/undefined');
+        console.log('  onRecordedSoundsChange:', onRecordedSoundsChange);
+        console.log('  recordingFor:', recordingFor);
       }
+      
       setShowRecorder(false);
+      setRecordingFor(null);
     } catch (error) {
-      console.error('Failed to save audio file:', error);
-      // Still save even if copy fails - backend has the audio
-      const updated = [...customSounds, { name: soundName, audioId, audioUri }];
-      setCustomSounds(updated);
-      if (onCustomSoundsChange) {
-        onCustomSoundsChange(updated);
+      console.error('❌ Failed to save audio file:', error);
+      // Still save even if copy fails
+      if (onRecordedSoundsChange && recordingFor) {
+        onRecordedSoundsChange({
+          ...recordedSounds,
+          [recordingFor]: { audioId, audioUri },
+        });
       }
       setShowRecorder(false);
+      setRecordingFor(null);
     }
   };
 
-  const handleRemoveCustomSound = (index: number) => {
-    const updated = customSounds.filter((_, i) => i !== index);
-    setCustomSounds(updated);
-    if (onCustomSoundsChange) {
-      onCustomSoundsChange(updated);
-    }
+  const getRecordingTitle = () => {
+    if (recordingFor === "doorbell") return "Record your doorbell";
+    return "Record a chime";
   };
 
   return (
     <View style={styles.container}>
       <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 100 }}>
-        <Text style={styles.title}>Choose Sound Types</Text>
+        <Text style={styles.title}>Set Up Sound Detection</Text>
         <Text style={styles.subtitle}>
-          Select which sounds you'd like to be notified about.
+          Configure which sounds you want to be alerted about.
         </Text>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Safety Alerts (Critical)</Text>
+          <Text style={styles.sectionTitle}>Safety Alerts (Always Active)</Text>
           <Text style={styles.helperText}>
-            Critical alerts are designed to interrupt you when it matters.
+            These critical alerts use pre-trained models to detect common emergency sounds.
           </Text>
 
           <View style={styles.soundItem}>
@@ -128,66 +177,39 @@ export default function ChooseSoundTypesStep({
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Daily Alerts</Text>
+          <Text style={styles.sectionTitle}>Daily Alerts (Record Your Own)</Text>
+          <Text style={styles.helperText}>
+            Everyone's doorbell sounds different - record yours for accurate detection.
+          </Text>
 
           <View style={styles.soundItem}>
             <View style={styles.soundItemLeft}>
               <Text style={styles.soundLabel}>Doorbell</Text>
+              {recordedSounds.doorbell ? (
+                <Text style={styles.recordedText}>✓ Recorded</Text>
+              ) : (
+                <Text style={styles.notRecordedText}>Not recorded</Text>
+              )}
             </View>
-            <View style={styles.switchContainer}>
-              <Switch
-                value={soundTypes.doorbell}
-                onValueChange={() => toggleSound("doorbell")}
-                trackColor={{ false: "#2A2A35", true: "#6D5EF5" }}
-                thumbColor="#fff"
-              />
-            </View>
+            <Pressable 
+              onPress={() => handleStartRecording("doorbell")}
+              style={({ pressed }) => [
+                styles.recordBtn,
+                { opacity: pressed ? 0.7 : 1 }
+              ]}
+            >
+              <Mic size={18} color={recordedSounds.doorbell ? "#6D5EF5" : "#fff"} />
+              <Text style={styles.recordBtnText}>
+                {recordedSounds.doorbell ? "Re-record" : "Record"}
+              </Text>
+            </Pressable>
           </View>
-
-          <View style={styles.soundItem}>
-            <View style={styles.soundItemLeft}>
-              <Text style={styles.soundLabel}>Baby Crying</Text>
-            </View>
-            <View style={styles.switchContainer}>
-              <Switch
-                value={soundTypes.babyCrying}
-                onValueChange={() => toggleSound("babyCrying")}
-                trackColor={{ false: "#2A2A35", true: "#6D5EF5" }}
-                thumbColor="#fff"
-              />
-            </View>
+          
+          <View style={styles.tipBox}>
+            <Text style={styles.tipText}>
+              💡 You can add more custom sounds (like washing machine, baby crying, or any other alert) in the Sounds tab later!
+            </Text>
           </View>
-        </View>
-
-        {/* Custom Sounds Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Custom Sounds</Text>
-          <Text style={styles.helperText}>
-            Record your own sounds to detect specific alerts unique to your environment.
-          </Text>
-
-          {customSounds.map((sound, index) => (
-            <View key={index} style={styles.soundItem}>
-              <View style={styles.soundItemLeft}>
-                <Text style={styles.soundLabel}>{sound.name}</Text>
-                <Text style={styles.customBadge}>Custom</Text>
-              </View>
-              <Pressable onPress={() => handleRemoveCustomSound(index)} hitSlop={10}>
-                <X size={20} color="#EF4444" />
-              </Pressable>
-            </View>
-          ))}
-
-          <Pressable
-            onPress={() => setShowRecorder(true)}
-            style={({ pressed }) => [
-              styles.addButton,
-              { opacity: pressed ? 0.8 : 1 },
-            ]}
-          >
-            <Plus size={20} color="#6D5EF5" />
-            <Text style={styles.addButtonText}>Add custom sound</Text>
-          </Pressable>
         </View>
       </ScrollView>
 
@@ -207,11 +229,19 @@ export default function ChooseSoundTypesStep({
         visible={showRecorder}
         animationType="slide"
         presentationStyle="fullScreen"
-        onRequestClose={() => setShowRecorder(false)}
+        onRequestClose={() => {
+          setShowRecorder(false);
+          setRecordingFor(null);
+        }}
       >
         <TeachSoundScreen
-          onClose={() => setShowRecorder(false)}
-          onSave={handleAddCustomSound}
+          onClose={() => {
+            setShowRecorder(false);
+            setRecordingFor(null);
+          }}
+          onSave={handleSaveRecording}
+          title={getRecordingTitle()}
+          autoSaveName="Doorbell"
         />
       </Modal>
     </View>
@@ -282,6 +312,42 @@ const styles = StyleSheet.create({
   switchContainer: {
     marginLeft: 16,
   },
+  recordBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#6D5EF5",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  recordBtnText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  recordedText: {
+    fontSize: 12,
+    color: "#22C55E",
+    fontWeight: "600",
+  },
+  notRecordedText: {
+    fontSize: 12,
+    color: "#A0A0AA",
+  },
+  tipBox: {
+    backgroundColor: "#1E1E27",
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: "#6D5EF5",
+  },
+  tipText: {
+    fontSize: 14,
+    color: "#A0A0AA",
+    lineHeight: 20,
+  },
   buttonContainer: {
     position: "absolute",
     bottom: 0,
@@ -301,28 +367,6 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "700",
     fontSize: 16,
-  },
-  customBadge: {
-    fontSize: 12,
-    color: "#6D5EF5",
-    fontWeight: "600",
-  },
-  addButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#15151C",
-    borderRadius: 16,
-    padding: 16,
-    gap: 8,
-    borderWidth: 2,
-    borderColor: "#6D5EF5",
-    borderStyle: "dashed",
-  },
-  addButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#6D5EF5",
   },
 });
 

@@ -65,34 +65,46 @@ export default function App() {
       const isComplete = await checkOnboardingComplete();
       console.log('✅ Onboarding complete:', isComplete);
       
-      // If onboarding is complete, load custom sounds from onboarding data
+      // If onboarding is complete, load recorded sounds from onboarding data
       if (isComplete) {
         const onboardingData = await loadOnboardingData();
-        if (onboardingData?.customSounds && onboardingData.customSounds.length > 0) {
-          console.log('📥 Loading custom sounds from onboarding:', onboardingData.customSounds.length);
+        console.log('📋 Onboarding data loaded:', JSON.stringify(onboardingData, null, 2));
+        
+        if (onboardingData?.recordedSounds) {
+          const recordedSounds = [];
           
-          // Save audio URIs to AsyncStorage and create sound objects
-          const customSoundsFromOnboarding = await Promise.all(
-            onboardingData.customSounds.map(async (sound, index) => {
-              // Save the audio URI mapping for playback (now using permanent location)
-              const key = `audioUri_${sound.audioId}`;
-              await AsyncStorage.setItem(key, sound.audioUri);
-              console.log(`💾 Saved audio URI for ${sound.audioId}: ${sound.audioUri}`);
-              
-              return {
-                id: `onboarding-${index}-${Date.now()}`,
-                label: sound.name,
-                dateAdded: "From onboarding",
-                timesDetected: 0,
-                enabled: true,
-                audioData: sound.audioId,
-                audioUri: sound.audioUri, // Now using permanent file location
-              };
-            })
-          );
+          // Load doorbell if recorded
+          if (onboardingData.recordedSounds.doorbell) {
+            const { audioId, audioUri } = onboardingData.recordedSounds.doorbell;
+            console.log(`📥 Loading doorbell: audioId=${audioId}, audioUri=${audioUri}`);
+            
+            const key = `audioUri_${audioId}`;
+            await AsyncStorage.setItem(key, audioUri);
+            console.log(`💾 Saved to AsyncStorage: key=${key}, value=${audioUri}`);
+            
+            // Verify it was saved
+            const savedUri = await AsyncStorage.getItem(key);
+            console.log(`✅ Verified AsyncStorage: ${savedUri}`);
+            
+            recordedSounds.push({
+              id: `onboarding-doorbell-${Date.now()}`,
+              label: "Doorbell",
+              dateAdded: "From onboarding",
+              timesDetected: 0,
+              enabled: true,
+              audioData: audioId,
+              audioUri,
+            });
+          }
           
-          console.log('📋 Custom sounds from onboarding:', customSoundsFromOnboarding.length);
-          setSavedSounds((prev) => [...customSoundsFromOnboarding, ...prev]);
+          if (recordedSounds.length > 0) {
+            console.log(`📥 Adding ${recordedSounds.length} sounds from onboarding:`, recordedSounds);
+            setSavedSounds((prev) => [...recordedSounds, ...prev]);
+          } else {
+            console.log('⚠️ No recorded sounds found in onboarding data');
+          }
+        } else {
+          console.log('⚠️ No recordedSounds in onboarding data');
         }
       }
       
@@ -114,11 +126,12 @@ export default function App() {
     // Ensure the state update happens immediately
     setShowOnboarding(false);
     setIsCheckingOnboarding(false);
+    setCurrentScreen("home"); // Explicitly navigate to home screen
     
     // Force a re-check to ensure we're showing the main app
     setTimeout(() => {
       setShowOnboarding(false);
-      console.log('✅ Should now show main app');
+      console.log('✅ Should now show main app on home screen');
     }, 100);
   };
 
