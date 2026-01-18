@@ -454,7 +454,7 @@ export default function SavedSoundsScreen({
                       false: "#9E9E9E",
                       true: COLORS.detected,
                     }}
-                    thumbColor="#BDBDBD"
+                    thumbColor="#FFFFFF"
                   />
                 </View>
 

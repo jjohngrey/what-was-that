@@ -8,6 +8,7 @@ import {
 import { saveOnboardingData } from "../../../utils/onboarding-storage";
 
 import WelcomeStep from "./WelcomeStep";
+import PersonaStep from "./PersonaStep";
 import PairSensorStep from "./PairSensorStep";
 import ChooseSoundTypesStep from "./ChooseSoundTypesStep";
 import AlertDeliveryStep from "./AlertDeliveryStep";
@@ -32,8 +33,8 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     console.log('📍 Step changed to:', currentStep);
   }, [currentStep]);
 
-  // Total steps: 0=Welcome, 1=Pair, 2=Sounds, 3=Delivery, 4=Contact, 5=Complete
-  const totalSteps = 6;
+  // Total steps: 0=Welcome, 1=Persona, 2=Pair, 3=Sounds, 4=Delivery, 5=Contact, 6=Complete
+  const totalSteps = 7;
 
   const handleBack = () => {
     console.log('⬅️ Back pressed, current step:', currentStep);
@@ -66,6 +67,11 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       console.log('📍 Moving to step:', nextStep);
       setCurrentStep(nextStep);
     }
+  };
+
+  const handleFirstNameChange = (firstName: string) => {
+    setOnboardingData({ ...onboardingData, firstName });
+    handleNext(); // Move to next step after saving first name
   };
 
   const handleSensorPaired = (paired: boolean) => {
@@ -102,8 +108,8 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       return null;
     }
 
-    // Steps 1-4 (index 1-4)
-    const progressSteps = [1, 2, 3, 4];
+    // Steps 1-5 (index 1-5)
+    const progressSteps = [1, 2, 3, 4, 5];
     const activeProgressStep = currentStep;
 
     return (
@@ -126,7 +132,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     const stepProps = {
       onNext: handleNext,
       onBack: handleBack,
-      showBack: currentStep > 0 && currentStep < 5, // Show back button except on welcome and completion
+      showBack: currentStep > 0 && currentStep < 6, // Show back button except on welcome and completion
     };
     
     switch (currentStep) {
@@ -135,12 +141,20 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         return <WelcomeStep onNext={handleNext} onSkip={handleSkipAll} />;
       case 1:
         return (
+          <PersonaStep
+            initialFirstName={onboardingData.firstName}
+            onNext={handleFirstNameChange}
+            onBack={handleBack}
+          />
+        );
+      case 2:
+        return (
           <PairSensorStep
             {...stepProps}
             onSensorPaired={handleSensorPaired}
           />
         );
-      case 2:
+      case 3:
         return (
           <ChooseSoundTypesStep
             {...stepProps}
@@ -150,7 +164,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             onRecordedSoundsChange={handleRecordedSoundsChange}
           />
         );
-      case 3:
+      case 4:
         return (
           <AlertDeliveryStep
             {...stepProps}
@@ -158,7 +172,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             onDeliveryChange={handleDeliveryChange}
           />
         );
-      case 4:
+      case 5:
         return (
           <EmergencyContactStep
             {...stepProps}
@@ -166,7 +180,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             onEmergencyContactChange={handleEmergencyContactChange}
           />
         );
-      case 5:
+      case 6:
         return <CompletionStep onFinish={handleNext} />;
       default:
         return <WelcomeStep onNext={handleNext} onSkip={handleSkipAll} />;
@@ -178,8 +192,8 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   
   return (
     <View style={{ flex: 1, backgroundColor: '#F5F5F7' }}>
-      {/* Back button - show on steps 1-4 */}
-      {currentStep > 0 && currentStep < 5 && (
+      {/* Back button - show on steps 1-5 */}
+      {currentStep > 0 && currentStep < 6 && (
         <Pressable 
           onPress={handleBack}
           style={styles.backButton}

@@ -39,7 +39,8 @@ const COLORS = {
 };
 
 // Get backend URL - adjust this to match your backend
-const PRODUCTION_BACKEND = 'http://155.138.215.227:3000';
+const PRODUCTION_BACKEND = ''; // Temporarily disabled to test locally
+// const PRODUCTION_BACKEND = 'http://155.138.215.227:3000';
 
 const getBackendUrl = () => {
   // Use production backend
@@ -485,7 +486,7 @@ export default function TeachSoundScreen({ onClose, onSave, title = "Record a ch
       : recordingState === "recording"
       ? `Recording sample ${currentRecording}/3...`
       : allRecordingsComplete
-      ? "All 3 samples recorded! Enter a name to save."
+      ? "Please wait a moment while we save your sound..."
       : `Sample ${currentRecording}/3 recorded! ${currentRecording < 3 ? 'Tap to record next sample.' : ''}`;
 
   const circleColor =
@@ -504,6 +505,9 @@ export default function TeachSoundScreen({ onClose, onSave, title = "Record a ch
         </Pressable>
         <Text style={styles.headerTitle}>{title}</Text>
       </View>
+
+      {/* Spacer to push content down */}
+      <View style={styles.spacer} />
 
       {/* Recording Card */}
       <Animated.View style={[styles.card, { transform: [{ scale: cardScale }] }]}>
@@ -531,12 +535,12 @@ export default function TeachSoundScreen({ onClose, onSave, title = "Record a ch
         <View style={styles.center}>
           {recordingState === "idle" ? (
             <Pressable onPress={startRecording} style={[styles.bigCircle, { backgroundColor: circleColor }]}>
-              <Mic size={40} color="white" />
+              <Mic size={48} color="white" />
             </Pressable>
           ) : recordingState === "recording" ? (
             <Animated.View style={{ transform: [{ scale: pulse }] }}>
               <Pressable onPress={stopRecording} style={[styles.bigCircle, { backgroundColor: circleColor }]}>
-                <Square size={40} color="white" />
+                <Square size={48} color="white" />
               </Pressable>
             </Animated.View>
           ) : (
@@ -693,36 +697,46 @@ export default function TeachSoundScreen({ onClose, onSave, title = "Record a ch
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg, padding: 24 },
-  header: { flexDirection: "row", alignItems: "center", marginBottom: 18 },
+  container: { flex: 1, backgroundColor: COLORS.bg, padding: 24, paddingTop: 16 },
+  header: { flexDirection: "row", alignItems: "center", marginBottom: 8, marginTop: 4 },
   backBtn: { marginRight: 10, padding: 6, borderRadius: 999 },
   headerTitle: { fontSize: 22, fontWeight: "600", color: COLORS.textPrimary },
+  
+  spacer: { 
+    flex: 0.15, // Reduced from 0.3 to bring card higher
+  },
 
   card: { 
     backgroundColor: COLORS.card, 
     borderRadius: 24, 
-    padding: 20,
+    padding: 32,
+    paddingTop: 40,
+    paddingBottom: 40,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 2,
   },
-  center: { alignItems: "center", justifyContent: "center", marginBottom: 16 },
+  center: { 
+    alignItems: "center", 
+    justifyContent: "center", 
+    marginVertical: 32,
+  },
   playbackControls: {
     flexDirection: "row",
     alignItems: "center",
     gap: 16,
   },
   bigCircle: {
-    width: 96,
-    height: 96,
+    width: 110,
+    height: 110,
     borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
   },
   checkmark: {
-    fontSize: 48,
+    fontSize: 56,
     color: "white",
     fontWeight: "700",
   },
@@ -734,22 +748,27 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  statusText: { textAlign: "center", color: COLORS.textPrimary, marginTop: 6, fontSize: 15 },
+  statusText: { 
+    textAlign: "center", 
+    color: COLORS.textPrimary, 
+    fontSize: 16,
+    marginTop: 0,
+  },
   timerText: {
     textAlign: "center",
     color: COLORS.textPrimary,
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: "600",
-    marginTop: 10,
-    marginBottom: 12,
+    marginTop: 16,
+    marginBottom: 16,
   },
 
   waveRow: {
     flexDirection: "row",
     alignItems: "flex-end",
     justifyContent: "center",
-    height: 70,
-    marginTop: 6,
+    height: 80,
+    marginTop: 12,
   },
   waveBar: {
     width: 4,
@@ -778,7 +797,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 32,
     gap: 12,
   },
   progressCircle: {

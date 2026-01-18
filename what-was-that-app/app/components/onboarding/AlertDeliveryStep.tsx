@@ -76,7 +76,7 @@ export default function AlertDeliveryStep({
                 value={delivery.flashlight}
                 onValueChange={() => toggleDelivery("flashlight")}
                 trackColor={{ false: "#9E9E9E", true: "#4A6572" }}
-                thumbColor="#BDBDBD"
+                thumbColor="#FFFFFF"
               />
             </View>
           </View>
@@ -93,7 +93,7 @@ export default function AlertDeliveryStep({
                 value={delivery.vibration}
                 onValueChange={() => toggleDelivery("vibration")}
                 trackColor={{ false: "#9E9E9E", true: "#4A6572" }}
-                thumbColor="#BDBDBD"
+                thumbColor="#FFFFFF"
               />
             </View>
           </View>
@@ -110,7 +110,7 @@ export default function AlertDeliveryStep({
                 value={delivery.overrideSilent}
                 onValueChange={() => toggleDelivery("overrideSilent")}
                 trackColor={{ false: "#9E9E9E", true: "#4A6572" }}
-                thumbColor="#BDBDBD"
+                thumbColor="#FFFFFF"
               />
             </View>
           </View>
@@ -163,6 +163,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
+    paddingBottom: 40, // More padding at bottom for better button placement
     backgroundColor: "#F5F5F7",
     justifyContent: "space-between",
   },

@@ -7,6 +7,9 @@ package-lock.json
 .env.local
 .env*.local
 
+# Configuration (contains sensitive Twilio credentials)
+config.js
+
 # Logs
 logs
 *.log

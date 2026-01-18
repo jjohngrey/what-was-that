@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     paddingTop: 8,
-    paddingBottom: 20,
+    paddingBottom: 10,
     paddingHorizontal: 16,
     flexDirection: "row",
     justifyContent: "space-around",
