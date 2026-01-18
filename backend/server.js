@@ -117,6 +117,12 @@ class AudioFingerprint {
   // Convert any audio to WAV
   convertToWav(inputPath) {
     return new Promise((resolve, reject) => {
+      // If already a WAV file, just return the path
+      if (inputPath.toLowerCase().endsWith('.wav')) {
+        resolve(inputPath);
+        return;
+      }
+
       const outputPath = inputPath.replace(/\.\w+$/, '.wav');
       
       ffmpeg(inputPath)

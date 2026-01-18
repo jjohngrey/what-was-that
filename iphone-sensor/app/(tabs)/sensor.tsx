@@ -373,13 +373,31 @@ export default function SensorScreen() {
 
       console.log('✅ Trigger saved:', response.data);
 
-      // Update UI to show success
-      setMatchResult({
-        success: true,
-        match: `Trigger saved: ${response.data.filename}`,
-        confidence: 1.0,
-        confidencePercent: '100%',
-      });
+      // Now call the match API with the saved file path
+      const savedFilePath = `./recorded_fingerprints/${response.data.filename}`;
+      console.log('🎯 Matching against fingerprints...');
+      
+      const matchResponse = await axios.post(
+        getBackendEndpoint('/api/audio/match'),
+        {
+          audioFilePath: savedFilePath,
+          threshold: CONFIG.AUDIO.MATCH_THRESHOLD,
+          userId: USER_ID,
+          matchOwnOnly: CONFIG.AUDIO.MATCH_OWN_ONLY
+        },
+        {
+          timeout: 30000,
+        }
+      );
+
+      console.log('✅ Match response:', matchResponse.data);
+      setMatchResult(matchResponse.data);
+
+      if (matchResponse.data.match) {
+        console.log(`🎵 MATCH FOUND: ${matchResponse.data.match} (${matchResponse.data.confidencePercent})`);
+      } else {
+        console.log('❌ No match found');
+      }
 
     } catch (err: any) {
       console.error('❌ Error sending to backend:', err);
