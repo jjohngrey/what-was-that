@@ -955,6 +955,34 @@ function getLocalIpAddress() {
   return 'localhost';
 }
 
+// Simple endpoint to save triggered audio (no fingerprinting)
+app.post('/api/audio/trigger', upload.single('audioFile'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No audio file uploaded' });
+    }
+
+    const { userId, timestamp } = req.body;
+
+    console.log(`🔔 Trigger received: ${req.file.filename} from user: ${userId || 'unknown'}`);
+
+    // Just save the file, no processing
+    res.status(200).json({ 
+      success: true,
+      message: 'Trigger audio saved',
+      filename: req.file.filename,
+      timestamp: timestamp || Date.now()
+    });
+
+  } catch (error) {
+    console.error('❌ Error saving trigger:', error);
+    res.status(500).json({ 
+      error: 'Failed to save trigger audio',
+      details: error.message 
+    });
+  }
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   const localIp = getLocalIpAddress();
   
