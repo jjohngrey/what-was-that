@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "what-was-that",
-    "slug": "what-was-that",
+    "name": "what-was-that-app",
+    "slug": "what-was-that-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "whatwasthat",
+    "scheme": "whatwasthatapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
