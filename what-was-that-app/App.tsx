@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { View, StyleSheet } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 import HomeScreen from "./app/components/HomeScreen";
 import SavedSoundsScreen from "./app/components/SavedSoundsScreen";
@@ -118,17 +118,19 @@ export default function App() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
-        {/* Main content */}
-        <View style={styles.body}>{renderScreen()}</View>
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.container}>
+          {/* Main content */}
+          <View style={styles.body}>{renderScreen()}</View>
 
-        {/* Bottom nav */}
-        {currentScreen !== "teach" && (
-          <BottomNav currentScreen={currentScreen} onNavigate={setCurrentScreen} />
-        )}
-      </View>
-    </SafeAreaView>
+          {/* Bottom nav */}
+          {currentScreen !== "teach" && (
+            <BottomNav currentScreen={currentScreen} onNavigate={setCurrentScreen} />
+          )}
+        </View>
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
