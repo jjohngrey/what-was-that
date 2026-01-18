@@ -9,10 +9,12 @@ import {
   Easing,
   Alert,
   Platform,
+  KeyboardAvoidingView,
+  ScrollView,
 } from "react-native";
 import { Audio } from "expo-av";
 import * as FileSystem from "expo-file-system";
-import { Mic, Square, ArrowLeft, Play, Pause, RefreshCcw } from "lucide-react-native";
+import { Mic, Square, ArrowLeft, Play, Pause, RefreshCcw, Trash2, ChevronRight } from "lucide-react-native";
 import Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
@@ -269,15 +271,8 @@ export default function TeachSoundScreen({ onClose, onSave, title = "Record a ch
 
       recordingRef.current = null;
 
-      // Move to next recording or finish
-      if (currentRecording < 3) {
-        setTimeout(() => {
-          setCurrentRecording(currentRecording + 1);
-          setRecordingState("idle");
-          setRecordingDuration(0);
-          setWaveformAmplitudes([]);
-        }, 800); // Slightly longer delay to show completion
-      } else {
+      // Don't auto-advance - let user decide to retry or continue
+      if (currentRecording >= 3) {
         console.log('All 3 recordings complete!');
         setAllRecordingsComplete(true);
         
@@ -473,6 +468,76 @@ export default function TeachSoundScreen({ onClose, onSave, title = "Record a ch
     await handleSaveWithName(customLabel);
   };
 
+  const handleRetryRecording = () => {
+    // Clear the current recording
+    const newUris = [...recordingUrisRef.current];
+    newUris[currentRecording - 1] = '';
+    recordingUrisRef.current = newUris;
+    
+    // Reset state
+    setRecordingState("idle");
+    setRecordingDuration(0);
+    setWaveformAmplitudes([]);
+    setIsPlaying(false);
+    
+    // Clean up any playback
+    if (soundRef.current) {
+      soundRef.current.unloadAsync().catch(console.error);
+      soundRef.current = null;
+    }
+  };
+
+  const handleNextRecording = () => {
+    if (currentRecording < 3) {
+      setCurrentRecording(currentRecording + 1);
+      setRecordingState("idle");
+      setRecordingDuration(0);
+      setWaveformAmplitudes([]);
+    }
+  };
+
+  const handleDeleteAll = () => {
+    Alert.alert(
+      "Delete Recording?",
+      "Are you sure you want to delete all recordings and start over?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            // Clean up all recordings
+            recordingUrisRef.current.forEach((uri) => {
+              if (uri) {
+                FileSystem.deleteAsync(uri, { idempotent: true }).catch(console.error);
+              }
+            });
+            recordingUrisRef.current = [];
+            
+            // Reset all state
+            setCurrentRecording(1);
+            setRecordingState("idle");
+            setRecordingDuration(0);
+            setWaveformAmplitudes([]);
+            setCustomLabel("");
+            setAllRecordingsComplete(false);
+            setIsPlaying(false);
+            
+            // Clean up audio
+            if (soundRef.current) {
+              soundRef.current.unloadAsync().catch(console.error);
+              soundRef.current = null;
+            }
+            if (recordingRef.current) {
+              recordingRef.current.stopAndUnloadAsync().catch(console.error);
+              recordingRef.current = null;
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -484,8 +549,6 @@ export default function TeachSoundScreen({ onClose, onSave, title = "Record a ch
       ? `Record sample ${currentRecording} of 3 - Play the sound you want to detect`
       : recordingState === "recording"
       ? `Recording sample ${currentRecording}/3...`
-      : allRecordingsComplete
-      ? "Please wait a moment while we save your sound..."
       : `Sample ${currentRecording}/3 recorded! ${currentRecording < 3 ? 'Tap to record next sample.' : ''}`;
 
   const circleColor =
@@ -496,20 +559,39 @@ export default function TeachSoundScreen({ onClose, onSave, title = "Record a ch
       : COLORS.confirmed;
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable onPress={onClose} style={styles.backBtn} hitSlop={10}>
-          <ArrowLeft size={24} color={COLORS.textPrimary} />
-        </Pressable>
-        <Text style={styles.headerTitle}>{title}</Text>
-      </View>
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    >
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <Pressable onPress={onClose} style={styles.backBtn} hitSlop={10}>
+            <ArrowLeft size={24} color={COLORS.textPrimary} />
+          </Pressable>
+          <Text style={styles.headerTitle}>{title}</Text>
+          {allRecordingsComplete && !autoSaveName && (
+            <Pressable
+              onPress={handleDeleteAll}
+              disabled={isUploading}
+              style={[styles.headerDeleteBtn, { opacity: isUploading ? 0.5 : 1 }]}
+              hitSlop={10}
+            >
+              <Trash2 size={20} color={COLORS.critical} />
+            </Pressable>
+          )}
+        </View>
 
-      {/* Spacer to push content down */}
-      <View style={styles.spacer} />
+        {/* Spacer to push content down */}
+        <View style={styles.spacer} />
 
-      {/* Recording Card */}
-      <Animated.View style={[styles.card, { transform: [{ scale: cardScale }] }]}>
+        {/* Recording Card */}
+        <Animated.View style={[styles.card, { transform: [{ scale: cardScale }] }]}>
         {/* Progress Indicator */}
         <View style={styles.progressContainer}>
           {[1, 2, 3].map((num) => (
@@ -543,20 +625,35 @@ export default function TeachSoundScreen({ onClose, onSave, title = "Record a ch
               </Pressable>
             </Animated.View>
           ) : (
-            /* Recorded state - just show checkmark, no playback controls */
-            <View style={[styles.bigCircle, { backgroundColor: circleColor }]}>
-              <Text style={styles.checkmark}>✓</Text>
-            </View>
+            /* Recorded state - show checkmark with retry button */
+            <>
+              <View style={[styles.bigCircle, { backgroundColor: circleColor }]}>
+                <Text style={styles.checkmark}>✓</Text>
+              </View>
+              {!allRecordingsComplete && (
+                <View style={styles.recordedActions}>
+                  <Pressable onPress={handleRetryRecording} style={styles.retryButton}>
+                    <RefreshCcw size={32} color={COLORS.textPrimary} />
+                  </Pressable>
+                  {currentRecording < 3 && (
+                    <Pressable onPress={handleNextRecording} style={styles.nextButton}>
+                      <ChevronRight size={32} color={COLORS.textPrimary} />
+                    </Pressable>
+                  )}
+                </View>
+              )}
+            </>
           )}
         </View>
 
         {/* Status Text */}
-        <Text style={styles.statusText}>
-          {recordingState === "idle" && `Tap to record sample ${currentRecording}/3`}
-          {recordingState === "recording" && `Recording sample ${currentRecording}/3...`}
-          {recordingState === "recorded" && !allRecordingsComplete && `Sample ${currentRecording}/3 saved`}
-          {recordingState === "recorded" && allRecordingsComplete && "All samples recorded!"}
-        </Text>
+        {!allRecordingsComplete && (
+          <Text style={styles.statusText}>
+            {recordingState === "idle" && `Tap to record sample ${currentRecording}/3`}
+            {recordingState === "recording" && `Recording sample ${currentRecording}/3...`}
+            {recordingState === "recorded" && `Sample ${currentRecording}/3 saved`}
+          </Text>
+        )}
 
         {/* Timer - only show during recording */}
         {recordingState === "recording" && (
@@ -582,124 +679,86 @@ export default function TeachSoundScreen({ onClose, onSave, title = "Record a ch
         )}
       </Animated.View>
 
-      {/* Label Input - Only show after all 3 recordings AND if no autoSaveName */}
+      {/* Completion Section - Only show after all 3 recordings AND if no autoSaveName */}
       {allRecordingsComplete && !autoSaveName && (
-        <Animated.View style={[styles.inputBlock, { opacity: labelFade, transform: [{ translateY: labelFade.interpolate({
-          inputRange: [0, 1],
-          outputRange: [12, 0],
-        }) }] }]}>
-          <Text style={styles.labelPrompt}>Label this sound:</Text>
-          <TextInput
-            placeholder="e.g., Doorbell, laundry machine, dish washer"
-            placeholderTextColor={COLORS.textSecondary}
-            value={customLabel}
-            onChangeText={setCustomLabel}
-            style={[
-              styles.input,
-              { borderColor: customLabel ? COLORS.detected : "transparent" },
-            ]}
-            autoFocus
-          />
+        <Animated.View style={[styles.completionSection, { opacity: labelFade }]}>
+          <View style={styles.completionCard}>
+            <View style={styles.completionHeader}>
+              <View style={styles.completionIcon}>
+                <Text style={styles.completionCheckmark}>✓</Text>
+              </View>
+              <Text style={styles.completionTitle}>All recordings complete!</Text>
+              <Text style={styles.completionSubtitle}>Give your sound a name to save it</Text>
+            </View>
+            
+            <View style={styles.inputBlock}>
+              <Text style={styles.labelPrompt}>Label this sound:</Text>
+              <TextInput
+                placeholder="Example: Doorbell"
+                placeholderTextColor={COLORS.textSecondary}
+                value={customLabel}
+                onChangeText={setCustomLabel}
+                style={[
+                  styles.input,
+                  { borderColor: customLabel ? COLORS.detected : "#E0E0E0" },
+                ]}
+                autoFocus
+                returnKeyType="done"
+                onSubmitEditing={handleSave}
+              />
+            </View>
+
+            <Pressable
+              onPress={handleSave}
+              disabled={!customLabel || isUploading}
+              style={[
+                styles.primaryBtn,
+                {
+                  backgroundColor: customLabel && !isUploading ? COLORS.primary : COLORS.textSecondary,
+                  opacity: customLabel && !isUploading ? 1 : 0.5,
+                  marginTop: 16,
+                },
+              ]}
+            >
+              <Text style={styles.primaryBtnText}>
+                {isUploading ? "Uploading..." : "Save Sound"}
+              </Text>
+            </Pressable>
+          </View>
         </Animated.View>
       )}
 
-      {/* Info Note */}
-      <Text style={styles.infoText}>{infoText}</Text>
+        {/* Info Note */}
+        {!allRecordingsComplete && (
+          <Text style={styles.infoText}>{infoText}</Text>
+        )}
 
-      <View style={{ flex: 1 }} />
-
-      {/* Action Buttons - Fixed at bottom - Only show after all 3 recordings AND if no autoSaveName */}
-      {allRecordingsComplete && !autoSaveName && (
-        <Animated.View style={[styles.bottomButtonContainer, { opacity: saveFade }]}>
-          <Pressable
-            onPress={handleSave}
-            disabled={!customLabel || isUploading}
-            style={[
-              styles.primaryBtn,
-              {
-                backgroundColor: customLabel && !isUploading ? COLORS.primary : COLORS.textSecondary,
-                opacity: customLabel && !isUploading ? 1 : 0.5,
-              },
-            ]}
-          >
-            <Text style={styles.primaryBtnText}>
-              {isUploading ? "Uploading..." : "Save chime"}
-            </Text>
-          </Pressable>
-
-          {/* <View style={styles.actionButtonsRow}>
-            <Pressable
-              onPress={() => {
-                // Try again - reset to idle state
-                setRecordingState("idle");
-                setRecordingDuration(0);
-                setCustomLabel("");
-                setIsPlaying(false);
-                setWaveformAmplitudes([]);
-                recordingUriRef.current = null;
-                if (soundRef.current) {
-                  soundRef.current.unloadAsync().catch(console.error);
-                  soundRef.current = null;
-                }
-                if (recordingRef.current) {
-                  recordingRef.current.stopAndUnloadAsync().catch(console.error);
-                  recordingRef.current = null;
-                }
-              }}
-              style={[styles.secondaryBtn, styles.tryAgainBtn]}
-              disabled={isUploading}
-            >
-              <Text style={styles.secondaryBtnText}>Try again</Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() => {
-                // Delete and go back
-                Alert.alert(
-                  "Delete Recording?",
-                  "Are you sure you want to delete this recording?",
-                  [
-                    { text: "Cancel", style: "cancel" },
-                    {
-                      text: "Delete",
-                      style: "destructive",
-                      onPress: () => {
-                        // Clean up audio files
-                        if (recordingUriRef.current) {
-                          FileSystem.deleteAsync(recordingUriRef.current, { idempotent: true }).catch(console.error);
-                        }
-                        if (soundRef.current) {
-                          soundRef.current.unloadAsync().catch(console.error);
-                          soundRef.current = null;
-                        }
-                        if (recordingRef.current) {
-                          recordingRef.current.stopAndUnloadAsync().catch(console.error);
-                          recordingRef.current = null;
-                        }
-                        // Go back to home
-                        onClose();
-                      },
-                    },
-                  ]
-                );
-              }}
-              style={[styles.secondaryBtn, styles.deleteBtn]}
-              disabled={isUploading}
-            >
-              <Text style={[styles.secondaryBtnText, { color: COLORS.critical }]}>Delete</Text>
-            </Pressable>
-          </View> */}
-        </Animated.View>
-      )}
-    </View>
+        <View style={{ minHeight: 100 }} />
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg, padding: 24, paddingTop: 16 },
-  header: { flexDirection: "row", alignItems: "center", marginBottom: 8, marginTop: 4 },
-  backBtn: { marginRight: 10, padding: 6, borderRadius: 999 },
-  headerTitle: { fontSize: 22, fontWeight: "600", color: COLORS.textPrimary },
+  container: { flex: 1, backgroundColor: COLORS.bg },
+  scrollContent: { 
+    padding: 24, 
+    paddingTop: Platform.OS === 'ios' ? 8 : 16,
+    flexGrow: 1,
+  },
+  header: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    justifyContent: "space-between",
+    marginBottom: 8, 
+    marginTop: Platform.OS === 'ios' ? 0 : 4 
+  },
+  backBtn: { padding: 6, borderRadius: 999 },
+  headerTitle: { fontSize: 22, fontWeight: "600", color: COLORS.textPrimary, flex: 1, textAlign: "center" },
+  headerDeleteBtn: {
+    padding: 6,
+    borderRadius: 999,
+  },
   
   spacer: { 
     flex: 0.15, // Reduced from 0.3 to bring card higher
@@ -835,15 +894,92 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
 
-  bottomButtonContainer: {
+  completionSection: {
+    marginTop: 24,
+  },
+  completionCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 20,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  completionHeader: {
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  completionIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: COLORS.confirmed,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  completionCheckmark: {
+    fontSize: 36,
+    color: "white",
+    fontWeight: "700",
+  },
+  completionTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: COLORS.textPrimary,
+    marginBottom: 4,
+  },
+  completionSubtitle: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textAlign: "center",
   },
 
   primaryBtn: { 
     borderRadius: 16, 
     paddingVertical: 16, 
     alignItems: "center",
+    paddingHorizontal: 24,
   },
   primaryBtnText: { color: "white", fontWeight: "700", fontSize: 16 },
+  recordedActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 20,
+  },
+  retryButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: COLORS.card,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  nextButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: COLORS.card,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
 
   actionButtonsRow: {
     flexDirection: "row",

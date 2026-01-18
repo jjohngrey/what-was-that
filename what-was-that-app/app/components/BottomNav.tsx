@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import { View, Text, StyleSheet, Pressable, Platform } from "react-native";
 import { Home, Package, Clock, Settings } from "lucide-react-native";
 import type { Screen } from "../../App"; // if this path breaks, see note below
 
@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     paddingTop: 8,
-    paddingBottom: 10,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 8,
     paddingHorizontal: 16,
     flexDirection: "row",
     justifyContent: "space-around",

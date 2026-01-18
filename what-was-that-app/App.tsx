@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, StyleSheet, ActivityIndicator } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 import axios from "axios";
 import Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -388,6 +389,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
+      <StatusBar style="dark" />
       <SafeAreaView style={styles.safe}>
         <View style={styles.container}>
           {/* Main content */}
@@ -413,6 +415,6 @@ const styles = StyleSheet.create({
   body: {
     flex: 1,
     // leaves space so content doesn't go behind the BottomNav
-    paddingBottom: 72,
+    paddingBottom: 0,
   },
 });
