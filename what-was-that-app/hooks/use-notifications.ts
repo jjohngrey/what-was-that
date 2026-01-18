@@ -16,9 +16,17 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// Automatically detect IP from Expo dev server
+// Backend configuration
+const PRODUCTION_BACKEND = 'http://155.138.215.227:3000'; // Replace with your actual Vultr IP (e.g., http://45.76.123.45:3000)
+const USE_PRODUCTION = true; // Set to false for local development
+
 const getBackendUrl = () => {
-  // In development with Expo Go, get the host from the manifest
+  // Use production server if enabled
+  if (USE_PRODUCTION) {
+    return PRODUCTION_BACKEND;
+  }
+  
+  // Otherwise, automatically detect IP from Expo dev server for local development
   const hostUri = Constants.expoConfig?.hostUri;
   
   if (hostUri) {
