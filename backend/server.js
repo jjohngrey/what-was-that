@@ -79,6 +79,21 @@ function saveDeviceTokens() {
 // Load tokens on startup
 loadDeviceTokens();
 
+// ============================
+// Audio Fingerprinting Configuration
+// ============================
+
+// CONFIGURATION: Adjust these values to tune matching accuracy
+const MATCHING_CONFIG = {
+  DEFAULT_THRESHOLD: 0.65,        // Lower from 0.85 - matching threshold (0.0-1.0)
+  NORMALIZE_AUDIO: true,          // Normalize volume to reduce amplitude variations
+  HIGH_PASS_FILTER: true,         // Remove low-frequency noise (< 80Hz)
+  HIGH_PASS_CUTOFF: 80,           // Hz - cutoff frequency for high-pass filter
+  OFFSET_SEARCH_RANGE: 0.1,       // Search ±10% of audio length for time alignment
+  OFFSET_SEARCH_STEP: 2,          // Step size for offset search (smaller = more accurate but slower)
+  LOG_MATCHING: true              // Log detailed matching information
+};
+
 class AudioFingerprint {
   constructor() {
     this.database = new Map();
@@ -135,8 +150,14 @@ class AudioFingerprint {
 
   // Extract audio features with frequency analysis
   extractFeatures(audioData) {
-    const samples = audioData.channelData[0]; // Use first channel
+    let samples = audioData.channelData[0]; // Use first channel
     const sampleRate = audioData.sampleRate;
+    
+    // IMPROVEMENT 1: Normalize audio to reduce amplitude variations
+    samples = this.normalizeAudio(samples);
+    
+    // IMPROVEMENT 2: Apply high-pass filter to remove low-frequency noise
+    samples = this.highPassFilter(samples, 80, sampleRate);
     
     // More sophisticated feature extraction
     const fingerprint = [];
@@ -173,6 +194,34 @@ class AudioFingerprint {
     return fingerprint;
   }
   
+  // Normalize audio to [-1, 1] range to reduce amplitude variations
+  normalizeAudio(samples) {
+    const maxAmplitude = Math.max(...samples.map(Math.abs));
+    if (maxAmplitude === 0) return samples;
+    
+    const normalized = new Float32Array(samples.length);
+    for (let i = 0; i < samples.length; i++) {
+      normalized[i] = samples[i] / maxAmplitude;
+    }
+    return normalized;
+  }
+
+  // Simple high-pass filter to remove low-frequency rumble/noise
+  highPassFilter(samples, cutoffFreq, sampleRate) {
+    const RC = 1.0 / (cutoffFreq * 2 * Math.PI);
+    const dt = 1.0 / sampleRate;
+    const alpha = RC / (RC + dt);
+    
+    const filtered = new Float32Array(samples.length);
+    filtered[0] = samples[0];
+    
+    for (let i = 1; i < samples.length; i++) {
+      filtered[i] = alpha * (filtered[i - 1] + samples[i] - samples[i - 1]);
+    }
+    
+    return filtered;
+  }
+
   // Apply Hann window to reduce spectral leakage
   applyHannWindow(samples) {
     const windowed = new Float32Array(samples.length);
@@ -310,7 +359,7 @@ class AudioFingerprint {
   }
 
   // Match audio against database (optionally filter by userId)
-  async matchAudio(audioPath, threshold = 0.85, userId = null) {
+  async matchAudio(audioPath, threshold = MATCHING_CONFIG.DEFAULT_THRESHOLD, userId = null) {
     const unknownFingerprint = await this.generateFingerprint(audioPath);
     
     let bestMatch = null;
@@ -340,7 +389,23 @@ class AudioFingerprint {
 
     // Sort all scores for debugging
     allScores.sort((a, b) => b.score - a.score);
-    console.log('Top 3 matches:', allScores.slice(0, 3));
+    
+    // IMPROVEMENT: Better logging for debugging
+    if (MATCHING_CONFIG.LOG_MATCHING) {
+      console.log('\n🔍 MATCHING RESULTS:');
+      console.log(`  Threshold: ${(threshold * 100).toFixed(1)}%`);
+      console.log(`  Best Score: ${(bestScore * 100).toFixed(1)}%`);
+      console.log(`  Match Found: ${bestScore >= threshold ? '✅ YES' : '❌ NO'}`);
+      if (allScores.length > 0) {
+        console.log('  Top 3 matches:');
+        allScores.slice(0, 3).forEach((score, i) => {
+          const percent = (score.score * 100).toFixed(1);
+          const indicator = score.score >= threshold ? '✓' : '✗';
+          console.log(`    ${i + 1}. [${indicator}] ${score.audioId}: ${percent}% (user: ${score.userId})`);
+        });
+      }
+      console.log('');
+    }
 
     if (bestScore >= threshold) {
       return { match: bestMatch, confidence: bestScore, allScores };
@@ -353,19 +418,28 @@ class AudioFingerprint {
   compareFingerprints(fp1, fp2) {
     const len = Math.min(fp1.length, fp2.length);
     
-    // For exact same file, try zero offset first
-    let bestScore = this.compareFingerprintsWithOffset(fp1, fp2, 0);
+    // IMPROVEMENT: Try sliding window comparison to find best match
+    // This handles cases where recording started at different times
+    let bestScore = 0;
     
-    // Try different time alignments to handle offsets (reduced range)
-    const maxOffset = Math.min(10, Math.floor(len * 0.05)); // Check only 5% offset
+    // Check zero offset first (exact alignment)
+    bestScore = this.compareFingerprintsWithOffset(fp1, fp2, 0);
     
-    for (let offset = -maxOffset; offset <= maxOffset; offset += 5) {
+    // IMPROVEMENT: More comprehensive offset search (10% of length)
+    const maxOffset = Math.min(20, Math.floor(len * 0.1));
+    
+    // Try smaller step size for better alignment
+    for (let offset = -maxOffset; offset <= maxOffset; offset += 2) {
       if (offset === 0) continue; // Already checked
       const score = this.compareFingerprintsWithOffset(fp1, fp2, offset);
       bestScore = Math.max(bestScore, score);
     }
     
-    return bestScore;
+    // IMPROVEMENT: Boost score if both fingerprints are similar length
+    const lengthRatio = Math.min(fp1.length, fp2.length) / Math.max(fp1.length, fp2.length);
+    const lengthBonus = lengthRatio > 0.8 ? 1.0 : 0.95; // Small penalty for very different lengths
+    
+    return bestScore * lengthBonus;
   }
 
   compareFingerprintsWithOffset(fp1, fp2, offset) {
@@ -376,39 +450,43 @@ class AudioFingerprint {
     const start1 = Math.max(0, offset);
     const start2 = Math.max(0, -offset);
     
-    // Feature weights - frequency bands are MORE discriminative (must sum to 1.0)
+    // IMPROVEMENT: Focus on relative patterns rather than absolute values
+    // De-emphasize energy (affected by volume) and emphasize spectral shape
     const weights = {
-      energy: 0.03,
-      zcr: 0.05,
-      spectralCentroid: 0.05,
-      spectralFlux: 0.04,
-      spectralRolloff: 0.04,
-      // Frequency bands - these are VERY specific to each audio (increased weights)
-      subBass: 0.12,
-      bass: 0.14,
-      lowMid: 0.13,
-      mid: 0.15,
+      energy: 0.02,           // Less weight - volume varies
+      zcr: 0.04,
+      spectralCentroid: 0.08, // More weight - robust feature
+      spectralFlux: 0.06,     // More weight - temporal pattern
+      spectralRolloff: 0.06,  // More weight - spectral shape
+      // Frequency bands - relative energy distribution is key
+      subBass: 0.11,
+      bass: 0.13,
+      lowMid: 0.12,
+      mid: 0.14,
       highMid: 0.11,
       presence: 0.08,
-      brilliance: 0.06
+      brilliance: 0.05
     };
 
     for (let i = 0; i < len; i++) {
       const f1 = fp1[start1 + i];
       const f2 = fp2[start2 + i];
       
-      // Compare each feature with stricter penalties
+      // IMPROVEMENT: More forgiving comparison with logarithmic scaling
       for (const [feature, weight] of Object.entries(weights)) {
         const v1 = f1[feature] || 0;
         const v2 = f2[feature] || 0;
         
-        // Euclidean distance normalized
-        const maxVal = Math.max(Math.abs(v1), Math.abs(v2), 0.001);
-        const normalizedDiff = Math.abs(v1 - v2) / maxVal;
+        // Use logarithmic scaling for better perceptual matching
+        const log1 = Math.log10(Math.abs(v1) + 1);
+        const log2 = Math.log10(Math.abs(v2) + 1);
         
-        // Stricter similarity function with exponential penalty
-        // Small differences still score high, but larger differences drop faster
-        const similarity = Math.exp(-normalizedDiff * 1.5);
+        const maxVal = Math.max(log1, log2, 0.01);
+        const normalizedDiff = Math.abs(log1 - log2) / maxVal;
+        
+        // IMPROVEMENT: Less strict exponential - more forgiving to minor variations
+        // Reduced from 1.5 to 0.8 for more tolerance
+        const similarity = Math.exp(-normalizedDiff * 0.8);
         
         totalSimilarity += similarity * weight;
       }
@@ -695,7 +773,7 @@ app.post('/api/audio/match', async (req, res) => {
     
     const result = await fingerprinter.matchAudio(
       audioFilePath, 
-      threshold || 0.85,
+      threshold || MATCHING_CONFIG.DEFAULT_THRESHOLD,
       filterUserId
     );
 
