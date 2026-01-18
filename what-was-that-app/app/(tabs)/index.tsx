@@ -9,11 +9,16 @@ import { Link } from 'expo-router';
 import { useNotifications, sendTestNotification } from '@/hooks/use-notifications';
 
 export default function HomeScreen() {
-  const { expoPushToken, notification } = useNotifications('my-phone');
+  const { expoPushToken, notification, userId } = useNotifications();
 
   const handleTestNotification = async () => {
+    if (!userId) {
+      Alert.alert('Error', 'User ID not generated yet');
+      return;
+    }
+    
     try {
-      await sendTestNotification('my-phone');
+      await sendTestNotification(userId);
       Alert.alert('Success', 'Test notification sent!');
     } catch (error) {
       Alert.alert('Error', 'Failed to send test notification. Make sure backend is running.');
@@ -35,6 +40,17 @@ export default function HomeScreen() {
       </ThemedView>
       
       <ThemedView style={styles.stepContainer}>
+        <ThemedText type="subtitle">🆔 Your Device ID</ThemedText>
+        {userId ? (
+          <ThemedView style={styles.userIdBox}>
+            <ThemedText style={styles.userIdText}>{userId}</ThemedText>
+          </ThemedView>
+        ) : (
+          <ThemedText>⏳ Generating ID...</ThemedText>
+        )}
+      </ThemedView>
+
+      <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">📱 Push Notifications</ThemedText>
         <ThemedText>
           {expoPushToken 
@@ -43,7 +59,7 @@ export default function HomeScreen() {
         </ThemedText>
         {expoPushToken && (
           <ThemedText style={styles.tokenText} numberOfLines={2}>
-            Token: {expoPushToken.substring(0, 20)}...
+            🔑 Token: {expoPushToken.substring(0, 20)}...
           </ThemedText>
         )}
         <TouchableOpacity 
@@ -138,5 +154,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     opacity: 0.6,
     fontFamily: 'monospace',
+  },
+  userIdBox: {
+    backgroundColor: '#007AFF',
+    padding: 16,
+    borderRadius: 12,
+    marginVertical: 8,
+    alignItems: 'center',
+  },
+  userIdText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+    fontFamily: 'monospace',
+    textAlign: 'center',
   },
 });

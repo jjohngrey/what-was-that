@@ -4,6 +4,7 @@ import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Configure notification handler
 Notifications.setNotificationHandler({
@@ -17,8 +18,8 @@ Notifications.setNotificationHandler({
 });
 
 // Backend configuration
-const PRODUCTION_BACKEND = 'http://155.138.215.227:3000'; // Replace with your actual Vultr IP (e.g., http://45.76.123.45:3000)
-const USE_PRODUCTION = true; // Set to false for local development
+const PRODUCTION_BACKEND = 'http://155.138.215.227:3000'; // Vultr production server
+const USE_PRODUCTION = true; // Set to false for local development (only if you're running backend locally)
 
 const getBackendUrl = () => {
   // Use production server if enabled
@@ -41,27 +42,65 @@ const getBackendUrl = () => {
 
 const BACKEND_URL = getBackendUrl();
 
-// Log the backend URL for debugging
+// Log the backend URL for debugging  
 console.log('🌐 Backend URL:', BACKEND_URL);
+console.log('📡 Mode:', USE_PRODUCTION ? 'PRODUCTION (Vultr)' : 'LOCAL (Auto-detect)');
 
-export function useNotifications(userId: string = 'default-user') {
+// Generate or retrieve a unique user ID for this device
+async function getOrCreateUserId(): Promise<string> {
+  try {
+    // Try to get existing userId from storage
+    let userId = await AsyncStorage.getItem('userId');
+    
+    if (!userId) {
+      // Generate a unique ID based on device info
+      const deviceName = Device.deviceName || 'Unknown';
+      const deviceId = Constants.sessionId || Math.random().toString(36).substring(7);
+      userId = `${deviceName}-${deviceId}`.replace(/\s+/g, '-').toLowerCase();
+      
+      // Save it for future use
+      await AsyncStorage.setItem('userId', userId);
+      console.log('🆔 Generated new userId:', userId);
+    } else {
+      console.log('🆔 Using existing userId:', userId);
+    }
+    
+    return userId;
+  } catch (error) {
+    console.error('Error getting userId:', error);
+    return `device-${Math.random().toString(36).substring(7)}`;
+  }
+}
+
+export function useNotifications() {
   const [expoPushToken, setExpoPushToken] = useState<string | undefined>();
   const [notification, setNotification] = useState<Notifications.Notification | undefined>();
+  const [userId, setUserId] = useState<string | undefined>();
   const notificationListener = useRef<Notifications.Subscription | undefined>(undefined);
   const responseListener = useRef<Notifications.Subscription | undefined>(undefined);
 
   useEffect(() => {
-    registerForPushNotificationsAsync().then(token => {
-      console.log('🔔 Push token received:', token);
-      setExpoPushToken(token);
-      if (token && token.startsWith('ExponentPushToken[')) {
-        console.log('✅ Valid token format, registering with backend...');
-        registerWithBackend(userId, token);
-      } else {
-        console.log('⚠️ Invalid or missing push token:', token);
-      }
-    }).catch(error => {
-      console.error('❌ Failed to register for push notifications:', error);
+    // Get or generate userId first
+    getOrCreateUserId().then(id => {
+      setUserId(id);
+      console.log('');
+      console.log('═══════════════════════════════════');
+      console.log('🆔 YOUR USER ID: ' + id);
+      console.log('═══════════════════════════════════');
+      console.log('');
+      
+      registerForPushNotificationsAsync().then(token => {
+        console.log('🔔 Push token received:', token);
+        setExpoPushToken(token);
+        if (token && token.startsWith('ExponentPushToken[')) {
+          console.log('✅ Valid token format, registering with backend...');
+          registerWithBackend(id, token);
+        } else {
+          console.log('⚠️ Invalid or missing push token:', token);
+        }
+      }).catch(error => {
+        console.error('❌ Failed to register for push notifications:', error);
+      });
     });
 
     // Listen for notifications received while app is foregrounded
@@ -91,6 +130,7 @@ export function useNotifications(userId: string = 'default-user') {
   return {
     expoPushToken,
     notification,
+    userId,
   };
 }
 

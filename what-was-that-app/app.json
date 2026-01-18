@@ -1,8 +1,7 @@
 {
   "expo": {
     "name": "what-was-that",
-    "slug": "what-was-that",
-    "owner": "johngrey",
+    "slug": "what-was-that-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
