@@ -77,7 +77,7 @@ export default function EmergencyContactStep({
             <TextInput
               style={styles.input}
               placeholder="John Doe"
-              placeholderTextColor="#A0A0AA"
+              placeholderTextColor="#9E9E9E"
               value={emergencyContact.name}
               onChangeText={(text) =>
                 onEmergencyContactChange({ ...emergencyContact, name: text })
@@ -91,7 +91,7 @@ export default function EmergencyContactStep({
             <TextInput
               style={[styles.input, errors.phone ? styles.inputError : null]}
               placeholder="+1 (555) 123-4567"
-              placeholderTextColor="#A0A0AA"
+              placeholderTextColor="#9E9E9E"
               value={emergencyContact.phone}
               onChangeText={(text) => {
                 onEmergencyContactChange({ ...emergencyContact, phone: text });
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
-    backgroundColor: "#0B0B0F",
+    backgroundColor: "#F5F5F7",
     justifyContent: "space-between",
   },
   content: {
@@ -147,12 +147,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "700",
-    color: "#fff",
+    color: "#1F1F1F",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: "#A0A0AA",
+    color: "#757575",
     marginBottom: 32,
     lineHeight: 24,
   },
@@ -165,42 +165,52 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#fff",
+    color: "#1F1F1F",
   },
   input: {
-    backgroundColor: "#15151C",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
     fontSize: 16,
-    color: "#fff",
+    color: "#1F1F1F",
     borderWidth: 2,
-    borderColor: "transparent",
+    borderColor: "#E0E0E0",
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
   },
   inputError: {
-    borderColor: "#EF4444",
+    borderColor: "#D32F2F",
   },
   errorText: {
     fontSize: 13,
-    color: "#EF4444",
+    color: "#D32F2F",
     marginTop: 4,
   },
   infoBox: {
-    backgroundColor: "#15151C",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
     borderLeftWidth: 4,
-    borderLeftColor: "#6D5EF5",
+    borderLeftColor: "#4A6572",
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
   },
   infoText: {
     fontSize: 14,
-    color: "#A0A0AA",
+    color: "#757575",
     lineHeight: 20,
   },
   buttonContainer: {
     gap: 12,
   },
   continueBtn: {
-    backgroundColor: "#6D5EF5",
+    backgroundColor: "#4A6572", // Darker for better contrast
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: "center",
@@ -215,7 +225,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   skipBtnText: {
-    color: "#A0A0AA",
+    color: "#757575",
     fontWeight: "600",
     fontSize: 16,
   },

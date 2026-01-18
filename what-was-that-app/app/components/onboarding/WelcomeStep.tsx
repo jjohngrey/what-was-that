@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
-    backgroundColor: "#0B0B0F",
+    backgroundColor: "#F5F5F7",
     justifyContent: "space-between",
   },
   content: {
@@ -61,13 +61,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: "700",
-    color: "#fff",
+    color: "#1F1F1F",
     textAlign: "center",
     marginBottom: 16,
   },
   subtitle: {
     fontSize: 16,
-    color: "#A0A0AA",
+    color: "#757575",
     textAlign: "center",
     lineHeight: 24,
   },
@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   primaryBtn: {
-    backgroundColor: "#6D5EF5",
+    backgroundColor: "#4A6572", // Darker for better contrast
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: "center",
@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   skipBtnText: {
-    color: "#A0A0AA",
+    color: "#616161", // Darker for better contrast
     fontWeight: "600",
     fontSize: 16,
   },

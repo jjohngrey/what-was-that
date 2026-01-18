@@ -75,8 +75,8 @@ export default function AlertDeliveryStep({
               <Switch
                 value={delivery.flashlight}
                 onValueChange={() => toggleDelivery("flashlight")}
-                trackColor={{ false: "#2A2A35", true: "#6D5EF5" }}
-                thumbColor="#fff"
+                trackColor={{ false: "#9E9E9E", true: "#4A6572" }}
+                thumbColor="#BDBDBD"
               />
             </View>
           </View>
@@ -92,8 +92,8 @@ export default function AlertDeliveryStep({
               <Switch
                 value={delivery.vibration}
                 onValueChange={() => toggleDelivery("vibration")}
-                trackColor={{ false: "#2A2A35", true: "#6D5EF5" }}
-                thumbColor="#fff"
+                trackColor={{ false: "#9E9E9E", true: "#4A6572" }}
+                thumbColor="#BDBDBD"
               />
             </View>
           </View>
@@ -109,8 +109,8 @@ export default function AlertDeliveryStep({
               <Switch
                 value={delivery.overrideSilent}
                 onValueChange={() => toggleDelivery("overrideSilent")}
-                trackColor={{ false: "#2A2A35", true: "#6D5EF5" }}
-                thumbColor="#fff"
+                trackColor={{ false: "#9E9E9E", true: "#4A6572" }}
+                thumbColor="#BDBDBD"
               />
             </View>
           </View>
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
-    backgroundColor: "#0B0B0F",
+    backgroundColor: "#F5F5F7",
     justifyContent: "space-between",
   },
   content: {
@@ -173,12 +173,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "700",
-    color: "#fff",
+    color: "#1F1F1F",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: "#A0A0AA",
+    color: "#757575",
     marginBottom: 32,
     lineHeight: 24,
   },
@@ -189,10 +189,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#15151C",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
   },
   deliveryItemLeft: {
     flex: 1,
@@ -200,19 +205,19 @@ const styles = StyleSheet.create({
   deliveryLabel: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#fff",
+    color: "#1F1F1F",
     marginBottom: 4,
   },
   deliveryDescription: {
     fontSize: 13,
-    color: "#A0A0AA",
+    color: "#757575",
     lineHeight: 18,
   },
   switchContainer: {
     marginLeft: 16,
   },
   previewBtn: {
-    backgroundColor: "#22C55E",
+    backgroundColor: "#4A6572", // Darker for better contrast
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: "center",
@@ -226,7 +231,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   continueBtn: {
-    backgroundColor: "#6D5EF5",
+    backgroundColor: "#4A6572", // Darker for better contrast
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: "center",
@@ -238,12 +243,12 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
   },
   previewCard: {
-    backgroundColor: "#EF4444",
+    backgroundColor: "#D32F2F",
     borderRadius: 24,
     padding: 32,
     alignItems: "center",

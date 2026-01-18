@@ -33,13 +33,13 @@ export default function PairSensorStep({ onNext, onBack, showBack, onSensorPaire
   const getStatusColor = () => {
     switch (status) {
       case "connected":
-        return "#22C55E";
+        return "#4CAF50";
       case "error":
-        return "#EF4444";
+        return "#D32F2F";
       case "connecting":
-        return "#F59E0B";
+        return "#FF9800";
       default:
-        return "#A0A0AA";
+        return "#757575";
     }
   };
 
@@ -65,7 +65,7 @@ export default function PairSensorStep({ onNext, onBack, showBack, onSensorPaire
           <View style={styles.statusHeader}>
             <Text style={styles.statusTitle}>Sensor status</Text>
             {status === "connecting" && (
-              <ActivityIndicator size="small" color="#F59E0B" />
+              <ActivityIndicator size="small" color="#FF9800" />
             )}
           </View>
           <Text style={[styles.statusText, { color: getStatusColor() }]}>
@@ -102,7 +102,7 @@ export default function PairSensorStep({ onNext, onBack, showBack, onSensorPaire
             styles.continueBtn,
             {
               opacity: status === "connected" ? (pressed ? 0.9 : 1) : 0.4,
-              backgroundColor: status === "connected" ? "#6D5EF5" : "#2A2A35",
+              backgroundColor: status === "connected" ? "#4A6572" : "#E0E0E0",
             },
           ]}
         >
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
-    backgroundColor: "#0B0B0F",
+    backgroundColor: "#F5F5F7",
     justifyContent: "space-between",
   },
   content: {
@@ -131,15 +131,20 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "700",
-    color: "#fff",
+    color: "#1F1F1F",
     marginBottom: 32,
   },
   statusCard: {
-    backgroundColor: "#15151C",
+    backgroundColor: "#FFFFFF",
     borderRadius: 18,
     padding: 20,
     borderWidth: 2,
     marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
   },
   statusHeader: {
     flexDirection: "row",
@@ -149,7 +154,7 @@ const styles = StyleSheet.create({
   },
   statusTitle: {
     fontSize: 14,
-    color: "#A0A0AA",
+    color: "#757575",
     fontWeight: "600",
   },
   statusText: {
@@ -157,7 +162,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   pairBtn: {
-    backgroundColor: "#6D5EF5",
+    backgroundColor: "#4A6572", // Darker for better contrast
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: "center",
@@ -169,7 +174,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   errorText: {
-    color: "#EF4444",
+    color: "#D32F2F",
     textAlign: "center",
     fontSize: 14,
   },
@@ -191,7 +196,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   skipBtnText: {
-    color: "#A0A0AA",
+    color: "#616161", // Darker for better contrast
     fontWeight: "600",
     fontSize: 16,
   },

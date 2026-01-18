@@ -177,7 +177,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   console.log('🎨 Step component:', step ? 'exists' : 'null');
   
   return (
-    <View style={{ flex: 1, backgroundColor: '#0B0B0F' }}>
+    <View style={{ flex: 1, backgroundColor: '#F5F5F7' }}>
       {/* Back button - show on steps 1-4 */}
       {currentStep > 0 && currentStep < 5 && (
         <Pressable 
@@ -185,12 +185,12 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           style={styles.backButton}
           hitSlop={10}
         >
-          <ArrowLeft size={24} color="#fff" />
+          <ArrowLeft size={24} color="#1F1F1F" />
         </Pressable>
       )}
       
       {renderProgressIndicator()}
-      <View style={{ flex: 1, backgroundColor: '#0B0B0F' }}>
+      <View style={{ flex: 1, backgroundColor: '#F5F5F7' }}>
         {step}
       </View>
     </View>
@@ -198,15 +198,15 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#0B0B0F" },
-  container: { flex: 1, backgroundColor: "#0B0B0F" },
+  safe: { flex: 1, backgroundColor: "#F5F5F7" },
+  container: { flex: 1, backgroundColor: "#F5F5F7" },
   backButton: {
     position: 'absolute',
     top: 50,
     left: 24,
     zIndex: 100,
     padding: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
     borderRadius: 12,
   },
   progressContainer: {
@@ -220,10 +220,10 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#2A2A35",
+    backgroundColor: "#E0E0E0",
   },
   progressDotActive: {
-    backgroundColor: "#6D5EF5",
+    backgroundColor: "#4A6572", // Darker for better contrast
     width: 24,
   },
 });

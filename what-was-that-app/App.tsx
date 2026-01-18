@@ -17,9 +17,12 @@ import { checkOnboardingComplete, loadOnboardingData } from "./utils/onboarding-
 
 export type Screen = "home" | "sounds" | "history" | "settings" | "teach";
 
+export type SoundCategory = 'safety' | 'daily' | 'personal';
+
 export interface SavedSound {
   id: string;
   label: string;
+  category: SoundCategory;
   dateAdded: string;
   timesDetected: number;
   enabled: boolean;
@@ -71,7 +74,7 @@ export default function App() {
         console.log('📋 Onboarding data loaded:', JSON.stringify(onboardingData, null, 2));
         
         if (onboardingData?.recordedSounds) {
-          const recordedSounds = [];
+          const recordedSounds: SavedSound[] = [];
           
           // Load doorbell if recorded
           if (onboardingData.recordedSounds.doorbell) {
@@ -89,6 +92,7 @@ export default function App() {
             recordedSounds.push({
               id: `onboarding-doorbell-${Date.now()}`,
               label: "Doorbell",
+              category: 'daily' as SoundCategory,
               dateAdded: "From onboarding",
               timesDetected: 0,
               enabled: true,
@@ -187,9 +191,19 @@ export default function App() {
         const sounds: SavedSound[] = await Promise.all(
           fingerprints.map(async (fp: any) => {
             const audioUri = await loadAudioUri(fp.audioId);
+            // Auto-categorize based on label
+            const label = fp.audioId.toLowerCase();
+            let category: SoundCategory = 'personal';
+            if (label.includes('smoke') || label.includes('fire') || label.includes('glass') || label.includes('carbon')) {
+              category = 'safety';
+            } else if (label.includes('doorbell') || label.includes('washing') || label.includes('dryer') || label.includes('timer')) {
+              category = 'daily';
+            }
+            
             return {
               id: fp.audioId,
               label: fp.audioId,
+              category,
               dateAdded: fp.timestamp ? new Date(fp.timestamp).toLocaleDateString() : 'Unknown',
               timesDetected: 0,
               enabled: true,
@@ -241,9 +255,19 @@ export default function App() {
     // Save audio URI to local storage for playback
     await saveAudioUri(audioData, audioUri);
     
+    // Auto-categorize based on label
+    const lowerLabel = label.toLowerCase();
+    let category: SoundCategory = 'personal';
+    if (lowerLabel.includes('smoke') || lowerLabel.includes('fire') || lowerLabel.includes('glass') || lowerLabel.includes('carbon') || lowerLabel.includes('alarm')) {
+      category = 'safety';
+    } else if (lowerLabel.includes('doorbell') || lowerLabel.includes('washing') || lowerLabel.includes('dryer') || lowerLabel.includes('timer')) {
+      category = 'daily';
+    }
+    
     const newSound: SavedSound = {
       id: Date.now().toString(),
       label,
+      category,
       dateAdded: "Just now",
       timesDetected: 0,
       enabled: true,
@@ -290,16 +314,21 @@ export default function App() {
     }
   };
 
+  const handleEditSound = (id: string, newLabel: string, newCategory: SoundCategory) => {
+    setSavedSounds((prev) =>
+      prev.map((sound) =>
+        sound.id === id ? { ...sound, label: newLabel, category: newCategory } : sound
+      )
+    );
+  };
+
   const renderScreen = () => {
     console.log('🖼️ renderScreen called, currentScreen:', currentScreen);
     switch (currentScreen) {
       case "home":
         console.log('🖼️ Rendering HomeScreen component');
         return (
-          <HomeScreen
-            onTeachSound={() => setCurrentScreen("teach")}
-            onViewHistory={() => setCurrentScreen("history")}
-          />
+          <HomeScreen />
         );
 
       case "sounds":
@@ -309,6 +338,7 @@ export default function App() {
             onToggleSound={handleToggleSound}
             onDeleteSound={handleDeleteSound}
             onTeachSound={() => setCurrentScreen("teach")}
+            onEditSound={handleEditSound}
           />
         );
 
@@ -328,10 +358,7 @@ export default function App() {
 
       default:
         return (
-          <HomeScreen
-            onTeachSound={() => setCurrentScreen("teach")}
-            onViewHistory={() => setCurrentScreen("history")}
-          />
+          <HomeScreen />
         );
     }
   };
@@ -343,7 +370,7 @@ export default function App() {
       <SafeAreaProvider>
         <SafeAreaView style={styles.safe}>
           <View style={[styles.container, styles.loadingContainer]}>
-            <ActivityIndicator size="large" color="#6D5EF5" />
+            <ActivityIndicator size="large" color="#607D8B" />
           </View>
         </SafeAreaView>
       </SafeAreaProvider>
@@ -377,8 +404,8 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#0B0B0F" },
-  container: { flex: 1, backgroundColor: "#0B0B0F" },
+  safe: { flex: 1, backgroundColor: "#F5F5F7" },
+  container: { flex: 1, backgroundColor: "#F5F5F7" },
   loadingContainer: {
     justifyContent: "center",
     alignItems: "center",

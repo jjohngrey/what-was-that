@@ -27,15 +27,15 @@ interface TeachSoundScreenProps {
 type RecordingState = "idle" | "recording" | "recorded";
 
 const COLORS = {
-  bg: "#0B0B0F",
-  card: "#15151C",
-  bgLight: "#1E1E27",
-  textPrimary: "#FFFFFF",
-  textSecondary: "#A0A0AA",
-  primary: "#6D5EF5",
-  detected: "#3B82F6",
-  confirmed: "#22C55E",
-  critical: "#EF4444",
+  bg: "#F5F5F7",
+  card: "#FFFFFF",
+  bgLight: "#F5F5F7",
+  textPrimary: "#1F1F1F",
+  textSecondary: "#757575",
+  primary: "#4A6572", // Darker for better contrast
+  detected: "#4A6572", // Darker for better contrast
+  confirmed: "#4CAF50",
+  critical: "#D32F2F",
 };
 
 // Get backend URL - adjust this to match your backend
@@ -698,7 +698,16 @@ const styles = StyleSheet.create({
   backBtn: { marginRight: 10, padding: 6, borderRadius: 999 },
   headerTitle: { fontSize: 22, fontWeight: "600", color: COLORS.textPrimary },
 
-  card: { backgroundColor: COLORS.card, borderRadius: 24, padding: 20 },
+  card: { 
+    backgroundColor: COLORS.card, 
+    borderRadius: 24, 
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+  },
   center: { alignItems: "center", justifyContent: "center", marginBottom: 16 },
   playbackControls: {
     flexDirection: "row",
@@ -725,7 +734,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  statusText: { textAlign: "center", color: COLORS.textPrimary, marginTop: 6 },
+  statusText: { textAlign: "center", color: COLORS.textPrimary, marginTop: 6, fontSize: 15 },
   timerText: {
     textAlign: "center",
     color: COLORS.textPrimary,
@@ -750,7 +759,7 @@ const styles = StyleSheet.create({
   },
 
   inputBlock: { marginTop: 18, marginBottom: 10 },
-  labelPrompt: { color: COLORS.textPrimary, marginBottom: 10 },
+  labelPrompt: { color: COLORS.textPrimary, marginBottom: 10, fontSize: 15 },
   input: {
     backgroundColor: COLORS.card,
     borderWidth: 2,
@@ -758,6 +767,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     color: COLORS.textPrimary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
   },
 
   progressContainer: {
@@ -773,7 +787,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: COLORS.card,
     borderWidth: 2,
-    borderColor: COLORS.textSecondary,
+    borderColor: '#E0E0E0',
     justifyContent: "center",
     alignItems: "center",
   },
@@ -800,14 +814,18 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: "center",
     color: COLORS.textSecondary,
-    fontSize: 12,
+    fontSize: 13,
   },
 
   bottomButtonContainer: {
   },
 
-  primaryBtn: { borderRadius: 16, paddingVertical: 14, alignItems: "center" },
-  primaryBtnText: { color: "white", fontWeight: "600", fontSize: 16 },
+  primaryBtn: { 
+    borderRadius: 16, 
+    paddingVertical: 16, 
+    alignItems: "center",
+  },
+  primaryBtnText: { color: "white", fontWeight: "700", fontSize: 16 },
 
   actionButtonsRow: {
     flexDirection: "row",
@@ -820,6 +838,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center",
     backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   tryAgainBtn: {
     backgroundColor: COLORS.card,

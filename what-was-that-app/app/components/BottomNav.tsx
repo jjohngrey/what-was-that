@@ -42,11 +42,11 @@ export default function BottomNav({ currentScreen, onNavigate }: BottomNavProps)
 }
 
 const COLORS = {
-  bg: "#000000",
-  border: "#333333",
-  active: "#FFFFFF",
-  inactive: "#666666",
-  activeBg: "#1A1A1A",
+  bg: "#FFFFFF",
+  border: "#E0E0E0",
+  active: "#4A6572", // Darker blue-gray for better contrast
+  inactive: "#616161", // Darker for better contrast
+  activeBg: "#F5F5F7",
 };
 
 const styles = StyleSheet.create({
@@ -66,9 +66,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 8,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
   item: {
     alignItems: "center",

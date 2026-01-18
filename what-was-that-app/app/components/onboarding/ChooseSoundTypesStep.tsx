@@ -155,8 +155,8 @@ export default function ChooseSoundTypesStep({
               <Switch
                 value={true}
                 disabled={true}
-                trackColor={{ false: "#2A2A35", true: "#6D5EF5" }}
-                thumbColor="#fff"
+                trackColor={{ false: "#9E9E9E", true: "#4A6572" }}
+                thumbColor="#BDBDBD"
               />
             </View>
           </View>
@@ -169,8 +169,8 @@ export default function ChooseSoundTypesStep({
               <Switch
                 value={soundTypes.glassBreaking}
                 onValueChange={() => toggleSound("glassBreaking")}
-                trackColor={{ false: "#2A2A35", true: "#6D5EF5" }}
-                thumbColor="#fff"
+                trackColor={{ false: "#9E9E9E", true: "#4A6572" }}
+                thumbColor="#BDBDBD"
               />
             </View>
           </View>
@@ -198,7 +198,7 @@ export default function ChooseSoundTypesStep({
                 { opacity: pressed ? 0.7 : 1 }
               ]}
             >
-              <Mic size={18} color={recordedSounds.doorbell ? "#6D5EF5" : "#fff"} />
+              <Mic size={18} color="#fff" />
               <Text style={styles.recordBtnText}>
                 {recordedSounds.doorbell ? "Re-record" : "Record"}
               </Text>
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
-    backgroundColor: "#0B0B0F",
+    backgroundColor: "#F5F5F7",
     justifyContent: "space-between",
   },
   content: {
@@ -262,12 +262,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "700",
-    color: "#fff",
+    color: "#1F1F1F",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: "#A0A0AA",
+    color: "#757575",
     marginBottom: 32,
     lineHeight: 24,
   },
@@ -277,12 +277,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#fff",
+    color: "#1F1F1F",
     marginBottom: 8,
   },
   helperText: {
     fontSize: 14,
-    color: "#A0A0AA",
+    color: "#757575",
     marginBottom: 16,
     lineHeight: 20,
   },
@@ -290,10 +290,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#15151C",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
   },
   soundItemLeft: {
     flex: 1,
@@ -301,12 +306,12 @@ const styles = StyleSheet.create({
   soundLabel: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#fff",
+    color: "#1F1F1F",
     marginBottom: 4,
   },
   lockedText: {
     fontSize: 12,
-    color: "#A0A0AA",
+    color: "#757575",
     fontStyle: "italic",
   },
   switchContainer: {
@@ -316,7 +321,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#6D5EF5",
+    backgroundColor: "#4A6572", // Darker for better contrast
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
@@ -328,24 +333,29 @@ const styles = StyleSheet.create({
   },
   recordedText: {
     fontSize: 12,
-    color: "#22C55E",
+    color: "#4CAF50",
     fontWeight: "600",
   },
   notRecordedText: {
     fontSize: 12,
-    color: "#A0A0AA",
+    color: "#757575",
   },
   tipBox: {
-    backgroundColor: "#1E1E27",
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     padding: 16,
     marginTop: 16,
     borderLeftWidth: 3,
-    borderLeftColor: "#6D5EF5",
+    borderLeftColor: "#4A6572",
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
   },
   tipText: {
     fontSize: 14,
-    color: "#A0A0AA",
+    color: "#757575",
     lineHeight: 20,
   },
   buttonContainer: {
@@ -354,11 +364,11 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: 24,
-    backgroundColor: "#0B0B0F",
+    backgroundColor: "#F5F5F7",
     gap: 12,
   },
   continueBtn: {
-    backgroundColor: "#6D5EF5",
+    backgroundColor: "#4A6572", // Darker for better contrast
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: "center",
