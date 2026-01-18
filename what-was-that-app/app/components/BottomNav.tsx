@@ -26,10 +26,11 @@ export default function BottomNav({ currentScreen, onNavigate }: BottomNavProps)
             onPress={() => onNavigate(id)}
             style={({ pressed }) => [
               styles.item,
-              { opacity: pressed ? 0.7 : 1 },
+              isActive && styles.itemActive,
+              { opacity: pressed ? 0.8 : 1 },
             ]}
           >
-            <Icon size={22} color={isActive ? COLORS.active : COLORS.inactive} />
+            <Icon size={24} color={isActive ? COLORS.active : COLORS.inactive} strokeWidth={isActive ? 2.5 : 2} />
             <Text style={[styles.label, { color: isActive ? COLORS.active : COLORS.inactive }]}>
               {label}
             </Text>
@@ -41,10 +42,11 @@ export default function BottomNav({ currentScreen, onNavigate }: BottomNavProps)
 }
 
 const COLORS = {
-  bg: "#FFFFFF",
-  border: "#15151C",
-  active: "#3B82F6",
-  inactive: "#A0A0AA",
+  bg: "#000000",
+  border: "#333333",
+  active: "#FFFFFF",
+  inactive: "#666666",
+  activeBg: "#1A1A1A",
 };
 
 const styles = StyleSheet.create({
@@ -54,24 +56,35 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: COLORS.bg,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 1,
     borderTopColor: COLORS.border,
-    paddingVertical: 10,
+    paddingTop: 8,
+    paddingBottom: 20,
     paddingHorizontal: 16,
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 8,
   },
   item: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     borderRadius: 12,
+    minWidth: 60,
+  },
+  itemActive: {
+    backgroundColor: COLORS.activeBg,
   },
   label: {
     marginTop: 4,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "600",
+    letterSpacing: 0.3,
   },
 });
