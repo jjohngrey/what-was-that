@@ -20,8 +20,7 @@ const COLORS = {
 };
 
 const getBackendUrl = () => {
-  const PRODUCTION_BACKEND = ''; // Temporarily disabled to test locally
-  // const PRODUCTION_BACKEND = 'http://155.138.215.227:3000';
+  const PRODUCTION_BACKEND = 'http://155.138.215.227:3000';
   if (PRODUCTION_BACKEND) {
     return PRODUCTION_BACKEND;
   }

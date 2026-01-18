@@ -39,8 +39,7 @@ const COLORS = {
 };
 
 // Get backend URL - adjust this to match your backend
-const PRODUCTION_BACKEND = ''; // Temporarily disabled to test locally
-// const PRODUCTION_BACKEND = 'http://155.138.215.227:3000';
+const PRODUCTION_BACKEND = 'http://155.138.215.227:3000';
 
 const getBackendUrl = () => {
   // Use production backend

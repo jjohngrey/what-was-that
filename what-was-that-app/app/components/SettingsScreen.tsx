@@ -23,8 +23,7 @@ interface SettingsScreenProps {
   onResetOnboarding?: () => void;
 }
 
-const PRODUCTION_BACKEND = ''; // Temporarily disabled to test locally
-// const PRODUCTION_BACKEND = 'http://155.138.215.227:3000';
+const PRODUCTION_BACKEND = 'http://155.138.215.227:3000';
 
 const getBackendUrl = () => {
   if (PRODUCTION_BACKEND) {

@@ -31,8 +31,7 @@ export interface SavedSound {
 }
 
 // Get backend URL
-const PRODUCTION_BACKEND = ''; // Temporarily disabled to test locally
-// const PRODUCTION_BACKEND = 'http://155.138.215.227:3000'; // Vultr production backend
+const PRODUCTION_BACKEND = 'http://155.138.215.227:3000'; // Vultr production backend
 
 const getBackendUrl = () => {
   if (PRODUCTION_BACKEND) {
