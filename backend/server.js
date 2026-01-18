@@ -3,11 +3,18 @@ const ffmpeg = require('fluent-ffmpeg');
 const fs = require('fs');
 const { decode } = require('wav-decoder');
 const path = require('path');
+const { Expo } = require('expo-server-sdk');
 
 const app = express();
 const PORT = 3000;
 
 app.use(express.json());
+
+// Initialize Expo push notification client
+const expo = new Expo();
+
+// Store device push tokens (in production, use a real database)
+const deviceTokens = new Map(); // Map<userId, pushToken>
 
 class AudioFingerprint {
   constructor() {
@@ -368,6 +375,44 @@ if (!fs.existsSync(FINGERPRINTS_DIR)) {
 // Load existing database on startup
 fingerprinter.loadDatabase(DB_PATH);
 
+// ============================
+// Push Notification Functions
+// ============================
+
+async function sendPushNotification(userId, title, body, data = {}) {
+  const pushToken = deviceTokens.get(userId);
+  
+  if (!pushToken) {
+    console.log(`No push token found for user: ${userId}`);
+    return { success: false, error: 'No push token registered' };
+  }
+
+  // Check that the token is valid
+  if (!Expo.isExpoPushToken(pushToken)) {
+    console.error(`Push token ${pushToken} is not a valid Expo push token`);
+    return { success: false, error: 'Invalid push token' };
+  }
+
+  // Construct the notification message
+  const message = {
+    to: pushToken,
+    sound: 'default',
+    title: title,
+    body: body,
+    data: data,
+    priority: 'high',
+  };
+
+  try {
+    const ticket = await expo.sendPushNotificationsAsync([message]);
+    console.log(`Push notification sent to ${userId}:`, ticket);
+    return { success: true, ticket };
+  } catch (error) {
+    console.error(`Error sending push notification to ${userId}:`, error);
+    return { success: false, error: error.message };
+  }
+}
+
 app.get('/', (req, res) => {
   res.json({ 
     message: 'Audio Fingerprinting API',
@@ -375,7 +420,9 @@ app.get('/', (req, res) => {
       'POST /api/audio/fingerprint': 'Store an audio fingerprint',
       'POST /api/audio/match': 'Match unknown audio',
       'GET /api/audio/fingerprints': 'Get all stored fingerprints',
-      'DELETE /api/audio/fingerprint/:id': 'Delete a fingerprint'
+      'DELETE /api/audio/fingerprint/:id': 'Delete a fingerprint',
+      'POST /api/notifications/register': 'Register device for push notifications',
+      'POST /api/notifications/test': 'Send a test notification'
     }
   });
 });
@@ -419,10 +466,10 @@ app.post('/api/audio/fingerprint', async (req, res) => {
 // POST: Match unknown audio
 // curl -X POST http://localhost:3000/api/audio/match \
 //   -H "Content-Type: application/json" \
-//   -d '{"audioFilePath": "./recorded_fingerprints/test3.mp3", "threshold": 0.8}'
+//   -d '{"audioFilePath": "./recorded_fingerprints/test3.mp3", "threshold": 0.8, "userId": "user123"}'
 app.post('/api/audio/match', async (req, res) => {
   try {
-    const { audioFilePath, threshold } = req.body;
+    const { audioFilePath, threshold, userId } = req.body;
 
     if (!audioFilePath) {
       return res.status(400).json({ 
@@ -438,21 +485,39 @@ app.post('/api/audio/match', async (req, res) => {
 
     const result = await fingerprinter.matchAudio(
       audioFilePath, 
-      threshold || 0.8
+      threshold || 0.85
     );
 
-    if (result) {
+    // Send push notification if match found and userId provided
+    if (result && result.match && userId) {
+      const confidencePercent = (result.confidence * 100).toFixed(1);
+      await sendPushNotification(
+        userId,
+        '🎵 Audio Match Found!',
+        `Matched: ${result.match} (${confidencePercent}% confidence)`,
+        {
+          matchId: result.match,
+          confidence: result.confidence,
+          timestamp: new Date().toISOString()
+        }
+      );
+    }
+
+    if (result && result.match) {
       res.json({
         success: true,
         match: result.match,
         confidence: result.confidence,
-        confidencePercent: `${(result.confidence * 100).toFixed(1)}%`
+        confidencePercent: `${(result.confidence * 100).toFixed(1)}%`,
+        allScores: result.allScores
       });
     } else {
       res.json({
         success: true,
         match: null,
-        message: 'No match found'
+        confidence: result?.confidence || 0,
+        message: 'No match found',
+        allScores: result?.allScores || []
       });
     }
   } catch (error) {
@@ -508,7 +573,118 @@ app.delete('/api/audio/fingerprint/:id', (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Audio Fingerprinting Server running on http://localhost:${PORT}`);
-  console.log(`Loaded ${fingerprinter.database.size} fingerprints from database`);
+// ============================
+// Push Notification Endpoints
+// ============================
+
+// POST: Register device for push notifications
+// curl -X POST http://localhost:3000/api/notifications/register \
+//   -H "Content-Type: application/json" \
+//   -d '{"userId": "user123", "pushToken": "ExponentPushToken[...]"}'
+app.post('/api/notifications/register', (req, res) => {
+  try {
+    const { userId, pushToken } = req.body;
+    
+    console.log('📥 Registration request received:');
+    console.log('   UserId:', userId);
+    console.log('   Push Token:', pushToken);
+
+    if (!userId || !pushToken) {
+      console.log('❌ Missing userId or pushToken');
+      return res.status(400).json({
+        error: 'userId and pushToken are required'
+      });
+    }
+
+    // Validate the push token
+    if (!Expo.isExpoPushToken(pushToken)) {
+      console.log('❌ Invalid push token format:', pushToken);
+      return res.status(400).json({
+        error: 'Invalid Expo push token format',
+        receivedToken: pushToken
+      });
+    }
+
+    // Store the push token
+    deviceTokens.set(userId, pushToken);
+    console.log(`Registered push token for user: ${userId}`);
+
+    res.json({
+      success: true,
+      message: `Push notifications enabled for user: ${userId}`
+    });
+  } catch (error) {
+    console.error('Error registering push token:', error);
+    res.status(500).json({
+      error: 'Failed to register push token',
+      details: error.message
+    });
+  }
+});
+
+// POST: Send a test notification
+// curl -X POST http://localhost:3000/api/notifications/test \
+//   -H "Content-Type: application/json" \
+//   -d '{"userId": "user123"}'
+app.post('/api/notifications/test', async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        error: 'userId is required'
+      });
+    }
+
+    const result = await sendPushNotification(
+      userId,
+      '🔔 Test Notification',
+      'Your push notifications are working!',
+      { test: true }
+    );
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Test notification sent',
+        ticket: result.ticket
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: result.error
+      });
+    }
+  } catch (error) {
+    console.error('Error sending test notification:', error);
+    res.status(500).json({
+      error: 'Failed to send test notification',
+      details: error.message
+    });
+  }
+});
+
+// GET: List registered devices
+app.get('/api/notifications/devices', (req, res) => {
+  try {
+    const devices = Array.from(deviceTokens.keys());
+    res.json({
+      success: true,
+      count: devices.length,
+      devices: devices
+    });
+  } catch (error) {
+    console.error('Error listing devices:', error);
+    res.status(500).json({
+      error: 'Failed to list devices',
+      details: error.message
+    });
+  }
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🎵 Audio Fingerprinting Server running!`);
+  console.log(`   Local:   http://localhost:${PORT}`);
+  console.log(`   Network: http://128.189.223.21:${PORT}`);
+  console.log(`📚 Loaded ${fingerprinter.database.size} fingerprints from database`);
 });

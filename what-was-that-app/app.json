@@ -2,6 +2,7 @@
   "expo": {
     "name": "what-was-that",
     "slug": "what-was-that",
+    "owner": "johngrey",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -38,11 +39,27 @@
             "backgroundColor": "#000000"
           }
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#E6F4FE",
+          "sounds": [],
+          "androidMode": "default",
+          "androidCollapsedTitle": "Audio Match"
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0e25b1b1-8302-4362-bd74-09e2a2429eb1"
+      }
     }
   }
 }

@@ -1,0 +1,57 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment variables
+.env
+.env.local
+.env*.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Audio files and fingerprints (can be large)
+recorded_fingerprints/*.mp3
+recorded_fingerprints/*.wav
+recorded_fingerprints/*.m4a
+recorded_fingerprints/*.flac
+user_fingerprints/*.json
+
+# Keep the folders but ignore contents
+!recorded_fingerprints/.gitkeep
+!user_fingerprints/.gitkeep
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# OS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# Testing
+coverage/
+.nyc_output/

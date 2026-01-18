@@ -1,13 +1,25 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 
 import { HelloWave } from '@/components/hello-wave';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Link } from 'expo-router';
+import { useNotifications, sendTestNotification } from '@/hooks/use-notifications';
 
 export default function HomeScreen() {
+  const { expoPushToken, notification } = useNotifications('my-phone');
+
+  const handleTestNotification = async () => {
+    try {
+      await sendTestNotification('my-phone');
+      Alert.alert('Success', 'Test notification sent!');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to send test notification. Make sure backend is running.');
+    }
+  };
+
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
@@ -18,22 +30,37 @@ export default function HomeScreen() {
         />
       }>
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
+        <ThemedText type="title">🎵 What Was That?</ThemedText>
         <HelloWave />
       </ThemedView>
+      
       <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
+        <ThemedText type="subtitle">📱 Push Notifications</ThemedText>
         <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
+          {expoPushToken 
+            ? '✅ Registered for push notifications!' 
+            : '⏳ Registering for notifications...'}
+        </ThemedText>
+        {expoPushToken && (
+          <ThemedText style={styles.tokenText} numberOfLines={2}>
+            Token: {expoPushToken.substring(0, 20)}...
+          </ThemedText>
+        )}
+        <TouchableOpacity 
+          style={styles.button} 
+          onPress={handleTestNotification}
+          activeOpacity={0.7}
+        >
+          <ThemedText style={styles.buttonText}>🔔 Send Test Notification</ThemedText>
+        </TouchableOpacity>
+      </ThemedView>
+
+      <ThemedView style={styles.stepContainer}>
+        <ThemedText type="subtitle">📝 How It Works</ThemedText>
+        <ThemedText>
+          1. This app is registered for push notifications{'\n'}
+          2. Your backend can match audio fingerprints{'\n'}
+          3. When a match is found, you'll get notified!
         </ThemedText>
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
@@ -94,5 +121,22 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     position: 'absolute',
+  },
+  button: {
+    backgroundColor: '#007AFF',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  tokenText: {
+    fontSize: 12,
+    opacity: 0.6,
+    fontFamily: 'monospace',
   },
 });
