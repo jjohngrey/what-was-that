@@ -230,7 +230,7 @@ class AudioFingerprint {
   }
 
   // Match audio against database
-  async matchAudio(audioPath, threshold = 0.5) {
+  async matchAudio(audioPath, threshold = 0.85) {
     const unknownFingerprint = await this.generateFingerprint(audioPath);
     
     let bestMatch = null;
@@ -263,11 +263,14 @@ class AudioFingerprint {
   compareFingerprints(fp1, fp2) {
     const len = Math.min(fp1.length, fp2.length);
     
-    // Try different time alignments to handle offsets (reduced range)
-    let bestScore = 0;
-    const maxOffset = Math.min(20, Math.floor(len * 0.05)); // Check only 5% offset
+    // For exact same file, try zero offset first
+    let bestScore = this.compareFingerprintsWithOffset(fp1, fp2, 0);
     
-    for (let offset = -maxOffset; offset <= maxOffset; offset += 10) {
+    // Try different time alignments to handle offsets (reduced range)
+    const maxOffset = Math.min(10, Math.floor(len * 0.05)); // Check only 5% offset
+    
+    for (let offset = -maxOffset; offset <= maxOffset; offset += 5) {
+      if (offset === 0) continue; // Already checked
       const score = this.compareFingerprintsWithOffset(fp1, fp2, offset);
       bestScore = Math.max(bestScore, score);
     }
@@ -279,24 +282,24 @@ class AudioFingerprint {
     const len = Math.min(fp1.length, fp2.length) - Math.abs(offset);
     if (len <= 0) return 0;
     
-    let totalDiff = 0;
+    let totalSimilarity = 0;
     const start1 = Math.max(0, offset);
     const start2 = Math.max(0, -offset);
     
-    // Feature weights - frequency bands are more discriminative
+    // Feature weights - frequency bands are MORE discriminative (must sum to 1.0)
     const weights = {
-      energy: 0.05,
-      zcr: 0.08,
-      spectralCentroid: 0.10,
-      spectralFlux: 0.08,
-      spectralRolloff: 0.07,
-      // Frequency bands - these are very specific to each audio
-      subBass: 0.09,
-      bass: 0.10,
-      lowMid: 0.10,
-      mid: 0.11,
-      highMid: 0.09,
-      presence: 0.07,
+      energy: 0.03,
+      zcr: 0.05,
+      spectralCentroid: 0.05,
+      spectralFlux: 0.04,
+      spectralRolloff: 0.04,
+      // Frequency bands - these are VERY specific to each audio (increased weights)
+      subBass: 0.12,
+      bass: 0.14,
+      lowMid: 0.13,
+      mid: 0.15,
+      highMid: 0.11,
+      presence: 0.08,
       brilliance: 0.06
     };
 
@@ -304,24 +307,25 @@ class AudioFingerprint {
       const f1 = fp1[start1 + i];
       const f2 = fp2[start2 + i];
       
-      // Normalize and compare each feature
+      // Compare each feature with stricter penalties
       for (const [feature, weight] of Object.entries(weights)) {
         const v1 = f1[feature] || 0;
         const v2 = f2[feature] || 0;
         
-        // Use relative difference for better discrimination
-        const sum = Math.abs(v1) + Math.abs(v2);
-        const diff = sum > 0.0001 ? Math.abs(v1 - v2) / sum : 0;
+        // Euclidean distance normalized
+        const maxVal = Math.max(Math.abs(v1), Math.abs(v2), 0.001);
+        const normalizedDiff = Math.abs(v1 - v2) / maxVal;
         
-        // Square the difference to penalize larger mismatches more
-        totalDiff += (diff * diff) * weight;
+        // Stricter similarity function with exponential penalty
+        // Small differences still score high, but larger differences drop faster
+        const similarity = Math.exp(-normalizedDiff * 1.5);
+        
+        totalSimilarity += similarity * weight;
       }
     }
 
-    // Normalize to 0-1 score (lower diff = higher score)
-    const avgDiff = totalDiff / len;
-    // Use exponential decay to make scoring stricter
-    return Math.exp(-avgDiff * 5);
+    // Average similarity across all frames
+    return totalSimilarity / len;
   }
 
   // Get all stored audio IDs
