@@ -6,6 +6,7 @@ const path = require('path');
 const { Expo } = require('expo-server-sdk');
 const os = require('os');
 const multer = require('multer');
+const twilioService = require('./services/twilioService');
 
 const app = express();
 const PORT = 3000;
@@ -619,7 +620,9 @@ app.get('/', (req, res) => {
       'POST /api/notifications/test': 'Send a test notification',
       'GET /api/notifications/devices': 'List all registered devices',
       'DELETE /api/notifications/device/:userId': 'Remove a specific device',
-      'DELETE /api/notifications/devices/clear': 'Clear all registered devices'
+      'DELETE /api/notifications/devices/clear': 'Clear all registered devices',
+      'POST /api/alerts/checkin': 'Send check-in SMS to caregiver (I\'m OK)',
+      'POST /api/alerts/emergency': 'Send emergency SMS to caregiver (Need Help)'
     }
   });
 });
@@ -1021,6 +1024,120 @@ app.delete('/api/notifications/devices/clear', (req, res) => {
     res.status(500).json({
       error: 'Failed to clear devices',
       details: error.message
+    });
+  }
+});
+
+// ============================
+// Twilio Alert Endpoints
+// ============================
+
+// POST: Send check-in alert (I'm OK)
+// curl -X POST http://localhost:3000/api/alerts/checkin \
+//   -H "Content-Type: application/json" \
+//   -d '{"userId": "user123", "caregiverName": "John Doe", "caregiverPhone": "555-123-4567"}'
+app.post('/api/alerts/checkin', async (req, res) => {
+  try {
+    const { userId, firstName, caregiverName, caregiverPhone } = req.body;
+    
+    console.log('📥 Check-in request received:', { firstName, caregiverName, caregiverPhone });
+    
+    if (!caregiverPhone) {
+      return res.status(400).json({ 
+        error: 'Caregiver phone number is required' 
+      });
+    }
+    
+    const formattedPhone = twilioService.formatPhoneNumber(caregiverPhone);
+    const personName = firstName || 'Your loved one';
+    console.log('📝 Using personName in message:', personName);
+    const message = `✓ ${personName} checked in and is doing okay. - What Was That`;
+    
+    const result = await twilioService.sendSMS(formattedPhone, message);
+    
+    if (result.success) {
+      console.log(`📱 Check-in SMS sent to ${caregiverName} (${formattedPhone})`);
+      res.json({ 
+        success: true, 
+        message: 'Caregiver notified',
+        messageSid: result.sid
+      });
+    } else {
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to send SMS', 
+        details: result.error 
+      });
+    }
+    
+    // TODO: Update today's status in database
+    // TODO: Cancel any scheduled alerts
+    
+  } catch (error) {
+    console.error('Error in checkin endpoint:', error);
+    res.status(500).json({ 
+      error: 'Failed to process check-in', 
+      details: error.message 
+    });
+  }
+});
+
+// POST: Send emergency alert (I Need Help)
+// curl -X POST http://localhost:3000/api/alerts/emergency \
+//   -H "Content-Type: application/json" \
+//   -d '{"userId": "user123", "caregiverName": "John Doe", "caregiverPhone": "555-123-4567"}'
+app.post('/api/alerts/emergency', async (req, res) => {
+  try {
+    const { userId, firstName, caregiverName, caregiverPhone } = req.body;
+    
+    console.log('📥 Emergency request received:', { firstName, caregiverName, caregiverPhone });
+    
+    if (!caregiverPhone) {
+      return res.status(400).json({ 
+        error: 'Caregiver phone number is required' 
+      });
+    }
+    
+    const formattedPhone = twilioService.formatPhoneNumber(caregiverPhone);
+    const personName = firstName || 'Your loved one';
+    console.log('📝 Using personName in message:', personName);
+    const message = `🚨 URGENT: ${personName} needs help! They pressed the emergency alert button. Please check on them immediately. - What Was That`;
+    
+    const result = await twilioService.sendSMS(formattedPhone, message);
+    
+    if (result.success) {
+      console.log(`🚨 EMERGENCY SMS sent to ${caregiverName} (${formattedPhone})`);
+      
+      // Also send push notification if possible
+      if (userId) {
+        await sendPushNotification(
+          userId,
+          '🚨 Emergency Alert Sent',
+          'Your caregiver has been notified.',
+          { type: 'emergency', timestamp: new Date().toISOString() }
+        );
+      }
+      
+      res.json({ 
+        success: true, 
+        message: 'Emergency alert sent to caregiver',
+        messageSid: result.sid
+      });
+    } else {
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to send emergency SMS', 
+        details: result.error 
+      });
+    }
+    
+    // TODO: Log emergency event in database with high priority flag
+    
+  } catch (error) {
+    console.error('Error in emergency endpoint:', error);
+    res.status(500).json({ 
+      error: 'Failed to process emergency alert', 
+      details: error.message 
     });
   }
 });

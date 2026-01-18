@@ -156,7 +156,7 @@ export default function ChooseSoundTypesStep({
                 value={true}
                 disabled={true}
                 trackColor={{ false: "#9E9E9E", true: "#4A6572" }}
-                thumbColor="#BDBDBD"
+                thumbColor="#FFFFFF"
               />
             </View>
           </View>
@@ -170,7 +170,7 @@ export default function ChooseSoundTypesStep({
                 value={soundTypes.glassBreaking}
                 onValueChange={() => toggleSound("glassBreaking")}
                 trackColor={{ false: "#9E9E9E", true: "#4A6572" }}
-                thumbColor="#BDBDBD"
+                thumbColor="#FFFFFF"
               />
             </View>
           </View>
@@ -252,6 +252,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
+    paddingBottom: 40, // More padding at bottom for better button placement
     backgroundColor: "#F5F5F7",
     justifyContent: "space-between",
   },

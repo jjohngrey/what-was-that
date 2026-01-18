@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, Pressable, Alert, Switch } from "react-native";
 import { Wifi, Zap, Vibrate, Volume2, Moon, Send, CheckCircle2, AlertCircle, Phone } from "lucide-react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import Constants from 'expo-constants';
 import { loadOnboardingData } from "../../utils/onboarding-storage";
 import type { OnboardingData } from "../../types/onboarding";
 
@@ -16,24 +19,42 @@ const COLORS = {
   critical: "#D32F2F",
 };
 
+const getBackendUrl = () => {
+  const PRODUCTION_BACKEND = ''; // Temporarily disabled to test locally
+  // const PRODUCTION_BACKEND = 'http://155.138.215.227:3000';
+  if (PRODUCTION_BACKEND) {
+    return PRODUCTION_BACKEND;
+  }
+  const hostUri = Constants.expoConfig?.hostUri;
+  if (hostUri) {
+    const ip = hostUri.split(":")[0];
+    return `http://${ip}:3000`;
+  }
+  return "http://localhost:3000";
+};
+
 export default function HomeScreen({}: HomeScreenProps) {
   const [listening, setListening] = useState(true);
   const [sleepMode, setSleepMode] = useState(false);
   const [emergencyContact, setEmergencyContact] = useState<{ name: string; phone: string } | null>(null);
+  const [firstName, setFirstName] = useState<string>('');
 
   useEffect(() => {
-    // Load emergency contact from onboarding data
-    const loadEmergencyContact = async () => {
+    // Load emergency contact and first name from onboarding data
+    const loadUserData = async () => {
       try {
         const data = await loadOnboardingData();
         if (data?.emergencyContact?.name && data?.emergencyContact?.phone) {
           setEmergencyContact(data.emergencyContact);
         }
+        if (data?.firstName) {
+          setFirstName(data.firstName);
+        }
       } catch (error) {
-        console.error('Failed to load emergency contact:', error);
+        console.error('Failed to load user data:', error);
       }
     };
-    loadEmergencyContact();
+    loadUserData();
   }, []);
 
   const toggleSleepMode = () => {
@@ -47,36 +68,98 @@ export default function HomeScreen({}: HomeScreenProps) {
     );
   };
 
-  const handleImOkay = () => {
-    // CHECKIN_OK - Immediate success feedback
-    Alert.alert(
-      "✓ Thanks!",
-      "We've let your caregiver know you're okay.",
-      [{ text: "OK" }]
-    );
-    // TODO: Backend call to update today's status and cancel any scheduled alerts
+  const handleImOkay = async () => {
+    try {
+      if (!emergencyContact || !emergencyContact.phone) {
+        Alert.alert(
+          "No Caregiver Set",
+          "Please add an emergency contact in settings first.",
+          [{ text: "OK" }]
+        );
+        return;
+      }
+
+      const userId = await AsyncStorage.getItem('userId');
+      const backendUrl = getBackendUrl();
+      
+      console.log('🔍 Sending check-in with firstName:', firstName);
+      
+      // Send to backend
+      const response = await axios.post(`${backendUrl}/api/alerts/checkin`, {
+        userId,
+        firstName: firstName || 'Your loved one',
+        caregiverName: emergencyContact.name,
+        caregiverPhone: emergencyContact.phone
+      });
+
+      if (response.data.success) {
+        Alert.alert(
+          "✓ Thanks!",
+          "We've let your caregiver know you're okay.",
+          [{ text: "OK" }]
+        );
+      } else {
+        throw new Error(response.data.error || 'Failed to send alert');
+      }
+    } catch (error: any) {
+      console.error('Check-in error:', error);
+      Alert.alert(
+        "Error",
+        "Failed to notify caregiver. Please try again.",
+        [{ text: "OK" }]
+      );
+    }
   };
 
   const handleNeedHelp = () => {
-    // HELP_REQUESTED - Requires confirmation
+    if (!emergencyContact || !emergencyContact.phone) {
+      Alert.alert(
+        "No Caregiver Set",
+        "Please add an emergency contact in settings first.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
     Alert.alert(
       "Need Help?",
-      "This will notify your caregiver. Continue?",
+      "This will send an urgent alert to your caregiver. Continue?",
       [
         { text: "Cancel", style: "cancel" },
         { 
-          text: "Call Caregiver", 
-          onPress: () => {
-            Alert.alert("Calling...", "Calling your emergency contact now.");
-            // TODO: Implement actual phone call
-          }
-        },
-        { 
           text: "Send Alert", 
           style: "destructive",
-          onPress: () => {
-            Alert.alert("Alert Sent!", "Your caregiver has been notified immediately.");
-            // TODO: Backend call with higher priority flag
+          onPress: async () => {
+            try {
+              const userId = await AsyncStorage.getItem('userId');
+              const backendUrl = getBackendUrl();
+              
+              console.log('🔍 Sending emergency with firstName:', firstName);
+              
+              const response = await axios.post(`${backendUrl}/api/alerts/emergency`, {
+                userId,
+                firstName: firstName || 'Your loved one',
+                caregiverName: emergencyContact.name,
+                caregiverPhone: emergencyContact.phone
+              });
+
+              if (response.data.success) {
+                Alert.alert(
+                  "Alert Sent!",
+                  "Your caregiver has been notified immediately.",
+                  [{ text: "OK" }]
+                );
+              } else {
+                throw new Error(response.data.error || 'Failed to send alert');
+              }
+            } catch (error: any) {
+              console.error('Emergency alert error:', error);
+              Alert.alert(
+                "Error",
+                "Failed to send emergency alert. Please call your caregiver directly.",
+                [{ text: "OK" }]
+              );
+            }
           }
         },
       ]
@@ -101,8 +184,8 @@ export default function HomeScreen({}: HomeScreenProps) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>What Was That</Text>
-      <Text style={styles.subtitle}>Environmental sound monitoring</Text>
+      <Text style={styles.title}>{firstName ? `Hi, ${firstName}` : 'What Was That'}</Text>
+      <Text style={styles.subtitle}>Just checking in.</Text>
 
       {/* Status Buttons */}
       <View style={styles.statusButtons}>
@@ -151,7 +234,7 @@ export default function HomeScreen({}: HomeScreenProps) {
               false: "#9E9E9E",
               true: COLORS.primary,
             }}
-            thumbColor="#BDBDBD"
+            thumbColor="#FFFFFF"
           />
         </View>
 
@@ -180,10 +263,10 @@ export default function HomeScreen({}: HomeScreenProps) {
             </View>
           </View>
           <View style={styles.statusTextContainer}>
-            <Text style={styles.statusTitle}>Listening: {listening ? "On" : "Off"}</Text>
+            <Text style={styles.statusTitle}>Sensor: {listening ? "Connected" : "Disconnected"}</Text>
             <View style={styles.sensorStatus}>
               <Wifi size={16} color={COLORS.success} />
-              <Text style={styles.sensorText}>Sensor connected</Text>
+              <Text style={styles.sensorText}>Strong Signal</Text>
             </View>
           </View>
         </View>

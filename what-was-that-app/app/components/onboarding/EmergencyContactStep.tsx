@@ -137,6 +137,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
+    paddingBottom: 40, // More padding at bottom for better skip button placement
     backgroundColor: "#F5F5F7",
     justifyContent: "space-between",
   },
@@ -225,7 +226,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   skipBtnText: {
-    color: "#757575",
+    color: "#616161", // Darker for better contrast - matching PairSensorStep
     fontWeight: "600",
     fontSize: 16,
   },

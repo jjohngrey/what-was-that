@@ -2,6 +2,7 @@
 export interface OnboardingData {
   onboardingComplete: boolean;
   sensorPaired: boolean;
+  firstName?: string; // User's first name for personalization
   soundTypes: {
     smokeAlarm: boolean; // Always true, locked
     glassBreaking: boolean;
@@ -25,6 +26,7 @@ export interface OnboardingData {
 export const defaultOnboardingData: OnboardingData = {
   onboardingComplete: false,
   sensorPaired: false,
+  firstName: '',
   soundTypes: {
     smokeAlarm: true, // Always on
     glassBreaking: true,

@@ -50,6 +50,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
+    paddingBottom: 40, // More padding at bottom for better button placement
     backgroundColor: "#F5F5F7",
     justifyContent: "space-between",
   },
