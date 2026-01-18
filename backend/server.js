@@ -5,11 +5,43 @@ const { decode } = require('wav-decoder');
 const path = require('path');
 const { Expo } = require('expo-server-sdk');
 const os = require('os');
+const multer = require('multer');
 
 const app = express();
 const PORT = 3000;
 
 app.use(express.json());
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, 'recorded_fingerprints');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(7)}${path.extname(file.originalname)}`;
+    cb(null, uniqueName);
+  }
+});
+
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /mp3|wav|m4a|aac|flac/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype) || file.mimetype.startsWith('audio/');
+    
+    if (extname || mimetype) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only audio files are allowed!'));
+    }
+  }
+});
 
 // Initialize Expo push notification client
 const expo = new Expo();
@@ -485,6 +517,53 @@ app.post('/api/audio/fingerprint', async (req, res) => {
     console.error('Error storing fingerprint:', error);
     res.status(500).json({ 
       error: 'Failed to store fingerprint', 
+      details: error.message 
+    });
+  }
+});
+
+// POST: Upload and fingerprint audio file
+// This endpoint accepts a file upload from the mobile app
+app.post('/api/audio/upload', upload.single('audioFile'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No audio file uploaded' });
+    }
+
+    const { audioId, userId } = req.body;
+
+    if (!audioId || !userId) {
+      // Clean up uploaded file if validation fails
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ 
+        error: 'audioId and userId are required' 
+      });
+    }
+
+    const audioFilePath = req.file.path;
+    console.log(`📤 Received audio upload: ${req.file.filename} from user: ${userId}`);
+
+    // Create fingerprint from uploaded file
+    await fingerprinter.storeAudio(audioFilePath, audioId, userId);
+    fingerprinter.saveDatabase(DB_PATH);
+
+    res.json({ 
+      success: true, 
+      message: `Audio fingerprint created for: ${audioId}`,
+      audioId,
+      userId,
+      filename: req.file.filename
+    });
+  } catch (error) {
+    console.error('Error processing upload:', error);
+    // Clean up file on error
+    if (req.file) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (e) {}
+    }
+    res.status(500).json({ 
+      error: 'Failed to process audio upload', 
       details: error.message 
     });
   }

@@ -15,6 +15,7 @@ import * as FileSystem from "expo-file-system";
 import { Mic, Square, ArrowLeft, Play, Pause } from "lucide-react-native";
 import axios from "axios";
 import Constants from "expo-constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface TeachSoundScreenProps {
   onClose: () => void;
@@ -35,7 +36,15 @@ const COLORS = {
 };
 
 // Get backend URL - adjust this to match your backend
+const PRODUCTION_BACKEND = 'http://155.138.215.227:3000';
+
 const getBackendUrl = () => {
+  // Use production backend
+  if (PRODUCTION_BACKEND) {
+    return PRODUCTION_BACKEND;
+  }
+  
+  // Otherwise use local development URL
   const hostUri = Constants.expoConfig?.hostUri;
   if (hostUri) {
     const ip = hostUri.split(":")[0];
@@ -262,39 +271,61 @@ export default function TeachSoundScreen({ onClose, onSave }: TeachSoundScreenPr
     try {
       setIsUploading(true);
       const backendUrl = getBackendUrl();
-      const audioId = `audio-${Date.now()}`;
+      const audioId = label.toLowerCase().replace(/\s+/g, '-');
+      
+      // Get userId from AsyncStorage
+      const userId = await AsyncStorage.getItem('userId');
+      if (!userId) {
+        console.error('No userId found in storage');
+        Alert.alert('Error', 'User not initialized. Please restart the app.');
+        return null;
+      }
 
-      // Read file as base64
-      const base64 = await FileSystem.readAsStringAsync(audioUri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+      // Create FormData for file upload
+      const formData = new FormData();
+      
+      // Detect file extension
+      const fileExtension = audioUri.split('.').pop() || 'm4a';
+      const fileName = `${audioId}-${Date.now()}.${fileExtension}`;
+      
+      // Add the audio file
+      formData.append('audioFile', {
+        uri: audioUri,
+        type: `audio/${fileExtension}`,
+        name: fileName,
+      } as any);
+      
+      // Add metadata
+      formData.append('audioId', audioId);
+      formData.append('userId', userId);
 
-      // Upload to backend
+      console.log(`📤 Uploading audio: ${fileName} for user: ${userId}`);
+
+      // Upload to backend using multipart/form-data
       const response = await axios.post(
         `${backendUrl}/api/audio/upload`,
-        {
-          audioId,
-          label,
-          audioData: base64,
-          format: "m4a", // or detect from URI
-        },
+        formData,
         {
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'multipart/form-data',
           },
-          timeout: 30000,
+          timeout: 60000, // 60 second timeout for larger files
         }
       );
 
       if (response.data.success) {
-        console.log("Audio uploaded successfully:", audioId);
+        console.log('✅ Audio uploaded and fingerprinted:', audioId);
+        Alert.alert('Success', `"${label}" has been saved and fingerprinted!`);
         return audioId;
       } else {
-        throw new Error(response.data.error || "Upload failed");
+        throw new Error(response.data.error || 'Upload failed');
       }
     } catch (err: any) {
-      console.error("Failed to upload audio:", err);
-      // Don't show alert here - let the user know it's saved locally
+      console.error('❌ Failed to upload audio:', err.message || err);
+      Alert.alert(
+        'Upload Failed',
+        `Could not upload "${label}" to backend. Error: ${err.message || 'Unknown error'}`
+      );
       return null;
     } finally {
       setIsUploading(false);
@@ -302,7 +333,10 @@ export default function TeachSoundScreen({ onClose, onSave }: TeachSoundScreenPr
   };
 
   const handleSave = async () => {
-    if (!customLabel || recordingState !== "recorded") return;
+    if (!customLabel.trim() || recordingState !== "recorded") {
+      Alert.alert("Error", "Please enter a label for this sound.");
+      return;
+    }
 
     if (!recordingUriRef.current) {
       Alert.alert("Error", "No recording available to save.");
@@ -310,14 +344,19 @@ export default function TeachSoundScreen({ onClose, onSave }: TeachSoundScreenPr
     }
 
     try {
-      // Try to upload to backend
+      // Upload to backend and create fingerprint
       const audioId = await uploadToBackend(recordingUriRef.current, customLabel);
       
-      // Use backend audioId if available, otherwise generate local ID
-      const finalAudioId = audioId || `audio-${Date.now()}`;
-      
-      onSave(customLabel, finalAudioId);
-      onClose();
+      if (audioId) {
+        // Successfully uploaded and fingerprinted
+        onSave(customLabel, audioId);
+        onClose();
+      } else {
+        // Upload failed, but keep the local recording
+        const fallbackId = `local-${Date.now()}`;
+        onSave(customLabel, fallbackId);
+        onClose();
+      }
     } catch (err) {
       console.error("Failed to save:", err);
       Alert.alert("Error", "Failed to save recording. Please try again.");
